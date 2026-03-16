@@ -1,7 +1,9 @@
+import argparse
 import json
 import os
 import ssl
 import sys
+from typing import Optional
 import urllib.error
 import urllib.request
 
@@ -97,14 +99,59 @@ def get_provider_config() -> tuple[str, str, str, list[str]]:
     return provider, api_url, api_key, model_candidates
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Send prompt to LLM API and print answer.")
+    parser.add_argument("prompt", nargs="*", help="Prompt text")
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=float(os.getenv("LLM_TEMPERATURE", "0.7")),
+        help="Sampling temperature (0..2). Default: 0.7",
+    )
+    parser.add_argument(
+        "--top-p",
+        dest="top_p",
+        type=float,
+        default=float(os.getenv("LLM_TOP_P")) if os.getenv("LLM_TOP_P") else None,
+        help="Nucleus sampling top_p (0..1). Optional.",
+    )
+    parser.add_argument(
+        "--top-k",
+        dest="top_k",
+        type=int,
+        default=int(os.getenv("LLM_TOP_K")) if os.getenv("LLM_TOP_K") else None,
+        help="Top-k sampling (>=1). Optional.",
+    )
+    args = parser.parse_args()
+
+    if not 0 <= args.temperature <= 2:
+        parser.error("--temperature must be in range [0, 2]")
+    if args.top_p is not None and not 0 <= args.top_p <= 1:
+        parser.error("--top-p must be in range [0, 1]")
+    if args.top_k is not None and args.top_k < 1:
+        parser.error("--top-k must be >= 1")
+    return args
+
+
 def send_request(
-    api_url: str, api_key: str, model: str, prompt: str, ssl_context: ssl.SSLContext
+    api_url: str,
+    api_key: str,
+    model: str,
+    prompt: str,
+    ssl_context: ssl.SSLContext,
+    temperature: float,
+    top_p: Optional[float],
+    top_k: Optional[int],
 ) -> dict:
     payload = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.7,
+        "temperature": temperature,
     }
+    if top_p is not None:
+        payload["top_p"] = top_p
+    if top_k is not None:
+        payload["top_k"] = top_k
     request = urllib.request.Request(
         api_url,
         data=json.dumps(payload).encode("utf-8"),
@@ -120,8 +167,9 @@ def send_request(
 
 def main() -> None:
     load_env_file()
+    args = parse_args()
     provider, api_url, api_key, model_candidates = get_provider_config()
-    prompt = " ".join(sys.argv[1:]).strip() or "Привет! Скажи коротко, что такое LLM?"
+    prompt = " ".join(args.prompt).strip() or "Привет! Скажи коротко, что такое LLM?"
 
     ssl_context = build_ssl_context()
     data = None
@@ -131,7 +179,16 @@ def main() -> None:
         for current_model in model_candidates:
             tried_model = current_model
             try:
-                data = send_request(api_url, api_key, current_model, prompt, ssl_context)
+                data = send_request(
+                    api_url,
+                    api_key,
+                    current_model,
+                    prompt,
+                    ssl_context,
+                    args.temperature,
+                    args.top_p,
+                    args.top_k,
+                )
                 if current_model != model_candidates[0]:
                     print(f"Info: primary model unavailable, used fallback: {current_model}", file=sys.stderr)
                 break

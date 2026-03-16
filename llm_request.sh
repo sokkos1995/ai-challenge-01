@@ -9,10 +9,78 @@ if [[ -f ".env" ]]; then
   set +a
 fi
 
-if [[ $# -eq 0 ]]; then
+TEMPERATURE="${LLM_TEMPERATURE:-0.7}"
+TOP_P="${LLM_TOP_P:-}"
+TOP_K="${LLM_TOP_K:-}"
+PROMPT_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --temperature)
+      [[ $# -ge 2 ]] || { echo "Error: --temperature requires value." >&2; exit 1; }
+      TEMPERATURE="$2"
+      shift 2
+      ;;
+    --top-p)
+      [[ $# -ge 2 ]] || { echo "Error: --top-p requires value." >&2; exit 1; }
+      TOP_P="$2"
+      shift 2
+      ;;
+    --top-k)
+      [[ $# -ge 2 ]] || { echo "Error: --top-k requires value." >&2; exit 1; }
+      TOP_K="$2"
+      shift 2
+      ;;
+    --)
+      shift
+      PROMPT_ARGS+=("$@")
+      break
+      ;;
+    *)
+      PROMPT_ARGS+=("$1")
+      shift
+      ;;
+  esac
+done
+
+if [[ ${#PROMPT_ARGS[@]} -eq 0 ]]; then
   PROMPT="Привет! Коротко объясни, что такое LLM."
 else
-  PROMPT="$*"
+  PROMPT="${PROMPT_ARGS[*]}"
+fi
+
+is_number() {
+  [[ "$1" =~ ^-?[0-9]+([.][0-9]+)?$ ]]
+}
+
+if ! is_number "${TEMPERATURE}" || ! awk "BEGIN { exit !(${TEMPERATURE} >= 0 && ${TEMPERATURE} <= 2) }"; then
+  echo "Error: --temperature must be number in range [0,2]." >&2
+  exit 1
+fi
+if [[ -n "${TOP_P}" ]] && { ! is_number "${TOP_P}" || ! awk "BEGIN { exit !(${TOP_P} >= 0 && ${TOP_P} <= 1) }"; }; then
+  echo "Error: --top-p must be number in range [0,1]." >&2
+  exit 1
+fi
+if [[ -n "${TOP_K}" ]] && [[ ! "${TOP_K}" =~ ^[0-9]+$ ]]; then
+  echo "Error: --top-k must be integer >= 1." >&2
+  exit 1
+fi
+if [[ -n "${TOP_K}" ]] && [[ "${TOP_K}" -lt 1 ]]; then
+  echo "Error: --top-k must be integer >= 1." >&2
+  exit 1
+fi
+
+json_escape() {
+  python3 -c 'import json,sys; print(json.dumps(sys.argv[1]))' "$1"
+}
+
+ESCAPED_PROMPT="$(json_escape "${PROMPT}")"
+SAMPLING_FIELDS="\"temperature\": ${TEMPERATURE}"
+if [[ -n "${TOP_P}" ]]; then
+  SAMPLING_FIELDS+=", \"top_p\": ${TOP_P}"
+fi
+if [[ -n "${TOP_K}" ]]; then
+  SAMPLING_FIELDS+=", \"top_k\": ${TOP_K}"
 fi
 
 PROVIDER="${LLM_PROVIDER:-auto}"
@@ -64,8 +132,8 @@ for CURRENT_MODEL in "${MODELS[@]}"; do
     -H "Content-Type: application/json" \
     -d "{
       \"model\": \"${CURRENT_MODEL}\",
-      \"messages\": [{\"role\": \"user\", \"content\": \"${PROMPT}\"}],
-      \"temperature\": 0.7
+      \"messages\": [{\"role\": \"user\", \"content\": ${ESCAPED_PROMPT}}],
+      ${SAMPLING_FIELDS}
     }")"
 
   if [[ "${RESPONSE}" == *"No endpoints found for"* || "${RESPONSE}" == *"model_not_found"* || "${RESPONSE}" == *"does not exist"* ]]; then
