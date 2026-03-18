@@ -3,6 +3,7 @@ import json
 import os
 import ssl
 import sys
+import time
 from typing import Optional
 import urllib.error
 import urllib.request
@@ -100,6 +101,11 @@ def get_provider_config() -> tuple[str, str, str, list[str]]:
 
 
 def parse_args() -> argparse.Namespace:
+    default_stop_sequences = []
+    stop_sequences_env = os.getenv("LLM_STOP_SEQUENCES")
+    if stop_sequences_env:
+        default_stop_sequences = [s.strip() for s in stop_sequences_env.split(",") if s.strip()]
+
     parser = argparse.ArgumentParser(description="Send prompt to LLM API and print answer.")
     parser.add_argument("prompt", nargs="*", help="Prompt text")
     parser.add_argument(
@@ -122,6 +128,38 @@ def parse_args() -> argparse.Namespace:
         default=int(os.getenv("LLM_TOP_K")) if os.getenv("LLM_TOP_K") else None,
         help="Top-k sampling (>=1). Optional.",
     )
+    parser.add_argument(
+        "--response-format",
+        dest="response_format",
+        default=os.getenv("LLM_RESPONSE_FORMAT"),
+        help="Explicit output format requirements (e.g. JSON schema or bullet structure).",
+    )
+    parser.add_argument(
+        "--max-output-tokens",
+        dest="max_output_tokens",
+        type=int,
+        default=int(os.getenv("LLM_MAX_OUTPUT_TOKENS")) if os.getenv("LLM_MAX_OUTPUT_TOKENS") else None,
+        help="Maximum response length in tokens (>=1). Optional.",
+    )
+    parser.add_argument(
+        "--stop-sequence",
+        dest="stop_sequences",
+        action="append",
+        default=default_stop_sequences.copy(),
+        help="Stop generation when this sequence is produced. Can be passed multiple times.",
+    )
+    parser.add_argument(
+        "--finish-instruction",
+        dest="finish_instruction",
+        default=os.getenv("LLM_FINISH_INSTRUCTION"),
+        help="Explicit condition/instruction for when and how to finish the answer.",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Print minimal response stats (latency, tokens, model, finish_reason).",
+    )
     args = parser.parse_args()
 
     if not 0 <= args.temperature <= 2:
@@ -130,7 +168,29 @@ def parse_args() -> argparse.Namespace:
         parser.error("--top-p must be in range [0, 1]")
     if args.top_k is not None and args.top_k < 1:
         parser.error("--top-k must be >= 1")
+    if args.max_output_tokens is not None and args.max_output_tokens < 1:
+        parser.error("--max-output-tokens must be >= 1")
     return args
+
+
+def print_verbose_stats(data: dict, provider: str, model: str, elapsed_sec: float) -> None:
+    usage = data.get("usage", {})
+    choice0 = data.get("choices", [{}])[0]
+    finish_reason = choice0.get("finish_reason")
+
+    prompt_tokens = usage.get("prompt_tokens")
+    completion_tokens = usage.get("completion_tokens")
+    total_tokens = usage.get("total_tokens")
+    cost = usage.get("cost")
+
+    stats_line = (
+        f"[stats] provider={provider} model={model} latency_ms={elapsed_sec * 1000:.0f} "
+        f"finish_reason={finish_reason} prompt_tokens={prompt_tokens} "
+        f"completion_tokens={completion_tokens} total_tokens={total_tokens}"
+    )
+    if cost is not None:
+        stats_line += f" cost={cost}"
+    print(stats_line, file=sys.stderr)
 
 
 def send_request(
@@ -142,16 +202,38 @@ def send_request(
     temperature: float,
     top_p: Optional[float],
     top_k: Optional[int],
+    response_format: Optional[str],
+    max_output_tokens: Optional[int],
+    stop_sequences: list[str],
+    finish_instruction: Optional[str],
 ) -> dict:
+    messages: list[dict[str, str]] = []
+    constraints = []
+    if response_format:
+        constraints.append(f"Output format requirement: {response_format}")
+    if max_output_tokens is not None:
+        constraints.append(
+            f"Length limit: keep the answer within approximately {max_output_tokens} output tokens."
+        )
+    if finish_instruction:
+        constraints.append(f"Finish condition: {finish_instruction}")
+    if constraints:
+        messages.append({"role": "system", "content": "\n".join(constraints)})
+    messages.append({"role": "user", "content": prompt})
+
     payload = {
         "model": model,
-        "messages": [{"role": "user", "content": prompt}],
+        "messages": messages,
         "temperature": temperature,
     }
     if top_p is not None:
         payload["top_p"] = top_p
     if top_k is not None:
         payload["top_k"] = top_k
+    if max_output_tokens is not None:
+        payload["max_tokens"] = max_output_tokens
+    if stop_sequences:
+        payload["stop"] = stop_sequences
     request = urllib.request.Request(
         api_url,
         data=json.dumps(payload).encode("utf-8"),
@@ -174,6 +256,8 @@ def main() -> None:
     ssl_context = build_ssl_context()
     data = None
     tried_model = model_candidates[0]
+    request_started = time.perf_counter()
+    response_elapsed_sec = 0.0
 
     try:
         for current_model in model_candidates:
@@ -188,7 +272,12 @@ def main() -> None:
                     args.temperature,
                     args.top_p,
                     args.top_k,
+                    args.response_format,
+                    args.max_output_tokens,
+                    args.stop_sequences,
+                    args.finish_instruction,
                 )
+                response_elapsed_sec = time.perf_counter() - request_started
                 if current_model != model_candidates[0]:
                     print(f"Info: primary model unavailable, used fallback: {current_model}", file=sys.stderr)
                 break
@@ -238,8 +327,30 @@ def main() -> None:
             print("Request failed: no response from provider.")
         sys.exit(1)
 
-    answer = data["choices"][0]["message"]["content"]
-    print(answer)
+    choice0 = data.get("choices", [{}])[0]
+    message = choice0.get("message", {})
+    answer = message.get("content")
+    if isinstance(answer, str) and answer.strip():
+        print(answer)
+        if args.verbose:
+            print_verbose_stats(data, provider, tried_model, response_elapsed_sec)
+        return
+
+    finish_reason = choice0.get("finish_reason")
+    usage = data.get("usage", {})
+    completion_details = usage.get("completion_tokens_details", {})
+    reasoning_tokens = completion_details.get("reasoning_tokens")
+
+    print(
+        "Received empty assistant content from provider (message.content is null/empty).\n"
+        f"finish_reason={finish_reason}, reasoning_tokens={reasoning_tokens}.\n"
+        "This often happens when strict limits are used and the model spends output tokens on reasoning.\n"
+        "Try one of:\n"
+        "1) increase --max-output-tokens (or LLM_MAX_OUTPUT_TOKENS),\n"
+        "2) remove/relax stop sequences and finish instruction,\n"
+        "3) try another model/provider."
+    )
+    sys.exit(1)
 
 
 if __name__ == "__main__":
