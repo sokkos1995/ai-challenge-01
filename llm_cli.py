@@ -183,14 +183,20 @@ def print_verbose_stats(data: dict, provider: str, model: str, elapsed_sec: floa
     total_tokens = usage.get("total_tokens")
     cost = usage.get("cost")
 
-    stats_line = (
-        f"[stats] provider={provider} model={model} latency_ms={elapsed_sec * 1000:.0f} "
-        f"finish_reason={finish_reason} prompt_tokens={prompt_tokens} "
-        f"completion_tokens={completion_tokens} total_tokens={total_tokens}"
-    )
+    # Print each stats item on its own line for readability (`-v` mode).
+    stats_lines = [
+        f"[stats] provider={provider}",
+        f"model={model}",
+        f"latency_ms={elapsed_sec * 1000:.0f}",
+        f"finish_reason={finish_reason}",
+        f"prompt_tokens={prompt_tokens}",
+        f"completion_tokens={completion_tokens}",
+        f"total_tokens={total_tokens}",
+    ]
     if cost is not None:
-        stats_line += f" cost={cost}"
-    print(stats_line, file=sys.stderr)
+        stats_lines.append(f"cost={cost}")
+
+    print("\n".join(stats_lines), file=sys.stderr)
 
 
 def send_request(
