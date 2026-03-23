@@ -10,7 +10,8 @@ import urllib.request
 
 
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
-OPENROUTER_DEFAULT_MODEL = "openrouter/auto"
+# OPENROUTER_DEFAULT_MODEL = "openrouter/auto"
+OPENROUTER_DEFAULT_MODEL = "google/gemini-2.5-flash-lite"
 OPENROUTER_FALLBACK_MODELS = [
     "qwen/qwen-2.5-7b-instruct:free",
     "google/gemma-2-9b-it:free",
@@ -107,7 +108,18 @@ def parse_args() -> argparse.Namespace:
         default_stop_sequences = [s.strip() for s in stop_sequences_env.split(",") if s.strip()]
 
     parser = argparse.ArgumentParser(description="Send prompt to LLM API and print answer.")
-    parser.add_argument("prompt", nargs="*", help="Prompt text")
+    parser.add_argument("prompt", nargs="*", help="Prompt text (ignored if --prompt-file is set)")
+    _prompt_file_default = os.getenv("LLM_PROMPT_FILE")
+    if _prompt_file_default is not None:
+        _prompt_file_default = _prompt_file_default.strip() or None
+    parser.add_argument(
+        "-f",
+        "--prompt-file",
+        dest="prompt_file",
+        metavar="PATH",
+        default=_prompt_file_default,
+        help="Read prompt from file (UTF-8). Overrides positional prompt. Default: LLM_PROMPT_FILE.",
+    )
     parser.add_argument(
         "--temperature",
         type=float,
@@ -171,6 +183,23 @@ def parse_args() -> argparse.Namespace:
     if args.max_output_tokens is not None and args.max_output_tokens < 1:
         parser.error("--max-output-tokens must be >= 1")
     return args
+
+
+def resolve_prompt(args: argparse.Namespace) -> str:
+    path = (args.prompt_file or "").strip()
+    if path:
+        if not os.path.isfile(path):
+            print(f"Error: prompt file not found: {path}", file=sys.stderr)
+            sys.exit(1)
+        with open(path, "r", encoding="utf-8") as f:
+            text = f.read()
+        text = text.strip()
+        if not text:
+            print("Error: prompt file is empty.", file=sys.stderr)
+            sys.exit(1)
+        return text
+    inline = " ".join(args.prompt).strip()
+    return inline or "Привет! Скажи коротко, что такое LLM?"
 
 
 def print_verbose_stats(data: dict, provider: str, model: str, elapsed_sec: float) -> None:
@@ -257,7 +286,7 @@ def main() -> None:
     load_env_file()
     args = parse_args()
     provider, api_url, api_key, model_candidates = get_provider_config()
-    prompt = " ".join(args.prompt).strip() or "Привет! Скажи коротко, что такое LLM?"
+    prompt = resolve_prompt(args)
 
     ssl_context = build_ssl_context()
     data = None

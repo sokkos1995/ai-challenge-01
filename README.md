@@ -9,6 +9,7 @@
 
 - `llm_cli.py` — скрипт для отправки запроса и вывода ответа.
 - `llm_request.sh` — bash/curl скрипт для отправки запроса.
+- `prompt.txt` — пример длинного промпта (удобно подставлять через `-f`).
 - `constraints_comparison.md` — сравнение ответов с и без ограничений.
 
 ## Подготовка
@@ -62,7 +63,20 @@ echo "$LLM_PROVIDER"
 python3 llm_cli.py "Объясни, что такое LLM в 2 предложениях"
 ```
 
-Если аргумент не передан, скрипт использует промпт по умолчанию.
+Если аргумент не передан и не задан файл промпта (см. ниже), скрипт использует короткий промпт по умолчанию.
+
+### Промпт из файла (`-f` / `--prompt-file`)
+
+Текст запроса можно читать из файла в кодировке UTF-8:
+
+```bash
+python3 llm_cli.py -f prompt.txt
+python3 llm_cli.py -v --temperature 0.2 -f prompt.txt
+```
+
+Если указан **`-f`**, позиционные аргументы с текстом промпта **игнорируются**.
+
+Путь к файлу по умолчанию можно задать в **`.env`** или в окружении переменной **`LLM_PROMPT_FILE`** (например, `LLM_PROMPT_FILE=prompt.txt`) — тогда при необходимости можно вызывать `python3 llm_cli.py -v` без `-f`, если значение подхватилось из окружения после `source .env`.
 
 Параметры сэмплинга можно задавать флагами:
 
@@ -214,6 +228,9 @@ LLM_PROVIDER=auto
 LLM_API_URL=https://openrouter.ai/api/v1/chat/completions
 LLM_MODEL=openrouter/auto
 LLM_FALLBACK_MODELS=qwen/qwen-2.5-7b-instruct:free,google/gemma-2-9b-it:free,mistralai/mistral-7b-instruct:free
+
+# Опционально: файл с текстом промпта (как у флага -f; пустую строку не задавайте)
+# LLM_PROMPT_FILE=prompt.txt
 
 # Опционально: сэмплинг
 LLM_TEMPERATURE=0.7
