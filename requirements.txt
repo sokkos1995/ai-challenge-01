@@ -1,0 +1,2 @@
+# SSL CA bundle for HTTPS to LLM APIs when system certs are missing (used by app/agent.py).
+certifi==2026.2.25

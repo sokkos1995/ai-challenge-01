@@ -1,3 +1,4 @@
+import os
 import sys
 
 from app.agent import AgentRequestOptions, SimpleLLMAgent, load_env_file
@@ -21,6 +22,10 @@ def main() -> None:
     try:
         if args.chat:
             print("Interactive mode started. Type your message and press Enter. Type 'exit' to quit.")
+            if agent.chat_history_path:
+                print(
+                    f"Chat history SQLite (restored on restart): {os.path.abspath(agent.chat_history_path)}"
+                )
             while True:
                 user_input = input("you> ").strip()
                 if not user_input:
@@ -28,7 +33,7 @@ def main() -> None:
                 if user_input.lower() in {"exit", "quit", "q"}:
                     print("Bye!")
                     break
-                response = agent.ask(user_input, options)
+                response = agent.ask_chat(user_input, options)
                 print(f"agent> {response.answer}")
                 if args.verbose:
                     print_verbose_stats(response.raw_data, response.provider, response.model, response.latency_sec)

@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 import json
 import os
+import sqlite3
 import ssl
 import sys
 import time
-from typing import Optional
+from typing import Optional, Tuple
 import urllib.error
 import urllib.request
 
@@ -116,15 +117,7 @@ def get_provider_config() -> tuple[str, str, str, list[str]]:
     return provider, api_url, api_key, model_candidates
 
 
-def _send_request(
-    api_url: str,
-    api_key: str,
-    model: str,
-    prompt: str,
-    ssl_context: ssl.SSLContext,
-    options: AgentRequestOptions,
-) -> dict:
-    messages: list[dict[str, str]] = []
+def _constraint_system_message(options: AgentRequestOptions) -> Optional[dict[str, str]]:
     constraints = []
     if options.response_format:
         constraints.append(f"Output format requirement: {options.response_format}")
@@ -134,10 +127,84 @@ def _send_request(
         )
     if options.finish_instruction:
         constraints.append(f"Finish condition: {options.finish_instruction}")
-    if constraints:
-        messages.append({"role": "system", "content": "\n".join(constraints)})
-    messages.append({"role": "user", "content": prompt})
+    if not constraints:
+        return None
+    return {"role": "system", "content": "\n".join(constraints)}
 
+
+def _chat_session_system_message(options: AgentRequestOptions) -> dict[str, str]:
+    """Tells the model that prior user/assistant turns in the payload are real persisted chat."""
+    parts = [
+        "This request includes the full conversation so far with this user: every user and assistant "
+        "message before the final user message is prior dialogue from the same session (restored across "
+        "restarts). Use that history as ground truth. Do not claim you cannot see, remember, or access "
+        "those earlier messages."
+    ]
+    extra = _constraint_system_message(options)
+    if extra:
+        parts.append(extra["content"])
+    return {"role": "system", "content": "\n\n".join(parts)}
+
+
+def _ensure_chat_db_parent(path: str) -> None:
+    parent = os.path.dirname(os.path.abspath(path))
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+
+
+def _init_chat_db(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS chat_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+            content TEXT NOT NULL
+        )
+        """
+    )
+
+
+def load_chat_messages(path: str) -> list[dict[str, str]]:
+    if not os.path.exists(path):
+        return []
+    conn = sqlite3.connect(path)
+    try:
+        _init_chat_db(conn)
+        rows = conn.execute(
+            "SELECT role, content FROM chat_messages ORDER BY id ASC"
+        ).fetchall()
+    finally:
+        conn.close()
+    return [{"role": str(role), "content": str(content)} for role, content in rows]
+
+
+def save_chat_messages(path: str, messages: list[dict[str, str]]) -> None:
+    _ensure_chat_db_parent(path)
+    conn = sqlite3.connect(path)
+    try:
+        _init_chat_db(conn)
+        conn.execute("BEGIN IMMEDIATE")
+        conn.execute("DELETE FROM chat_messages")
+        conn.executemany(
+            "INSERT INTO chat_messages (role, content) VALUES (?, ?)",
+            [(m["role"], m["content"]) for m in messages],
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def _post_chat_completion(
+    api_url: str,
+    api_key: str,
+    model: str,
+    messages: list[dict[str, str]],
+    ssl_context: ssl.SSLContext,
+    options: AgentRequestOptions,
+) -> dict:
     payload = {
         "model": model,
         "messages": messages,
@@ -165,23 +232,50 @@ def _send_request(
         return json.loads(response.read().decode("utf-8"))
 
 
+def _chat_history_path_from_env() -> Optional[str]:
+    raw = os.getenv("LLM_CHAT_HISTORY_PATH", ".llm_chat_history.db")
+    stripped = raw.strip() if raw else ""
+    return stripped if stripped else None
+
+
 class SimpleLLMAgent:
     """LLM agent that encapsulates provider communication and retries."""
 
-    def __init__(self, provider: str, api_url: str, api_key: str, model_candidates: list[str]) -> None:
+    def __init__(
+        self,
+        provider: str,
+        api_url: str,
+        api_key: str,
+        model_candidates: list[str],
+        chat_history_path: Optional[str] = None,
+    ) -> None:
         self.provider = provider
         self.api_url = api_url
         self.api_key = api_key
         self.model_candidates = model_candidates
+        self.chat_history_path = chat_history_path
         self.ssl_context = build_ssl_context()
+        self._chat_history: list[dict[str, str]] = []
+        self._chat_history_loaded = False
 
     @classmethod
     def from_env(cls) -> "SimpleLLMAgent":
         provider, api_url, api_key, model_candidates = get_provider_config()
-        return cls(provider, api_url, api_key, model_candidates)
+        return cls(provider, api_url, api_key, model_candidates, _chat_history_path_from_env())
 
-    def ask(self, prompt: str, options: AgentRequestOptions) -> AgentResponse:
-        data = None
+    def _ensure_chat_history_loaded(self) -> None:
+        if self._chat_history_loaded:
+            return
+        if self.chat_history_path:
+            self._chat_history = load_chat_messages(self.chat_history_path)
+        else:
+            self._chat_history = []
+        self._chat_history_loaded = True
+
+    def _complete(
+        self, messages: list[dict[str, str]], options: AgentRequestOptions
+    ) -> Tuple[dict, str, float]:
+        data: Optional[dict] = None
         tried_model = self.model_candidates[0]
         request_started = time.perf_counter()
         response_elapsed_sec = 0.0
@@ -190,11 +284,11 @@ class SimpleLLMAgent:
             for current_model in self.model_candidates:
                 tried_model = current_model
                 try:
-                    data = _send_request(
+                    data = _post_chat_completion(
                         self.api_url,
                         self.api_key,
                         current_model,
-                        prompt,
+                        messages,
                         self.ssl_context,
                         options,
                     )
@@ -236,6 +330,12 @@ class SimpleLLMAgent:
                 )
             raise RuntimeError("Request failed: no response from provider.")
 
+        return data, tried_model, response_elapsed_sec
+
+    @staticmethod
+    def _response_from_raw(
+        data: dict, tried_model: str, response_elapsed_sec: float, provider: str
+    ) -> AgentResponse:
         choice0 = data.get("choices", [{}])[0]
         message = choice0.get("message", {})
         answer = message.get("content")
@@ -245,7 +345,7 @@ class SimpleLLMAgent:
                 raw_data=data,
                 model=tried_model,
                 latency_sec=response_elapsed_sec,
-                provider=self.provider,
+                provider=provider,
             )
 
         finish_reason = choice0.get("finish_reason")
@@ -261,3 +361,29 @@ class SimpleLLMAgent:
             "2) remove/relax stop sequences and finish instruction,\n"
             "3) try another model/provider."
         )
+
+    def ask(self, prompt: str, options: AgentRequestOptions) -> AgentResponse:
+        messages: list[dict[str, str]] = []
+        system_msg = _constraint_system_message(options)
+        if system_msg:
+            messages.append(system_msg)
+        messages.append({"role": "user", "content": prompt})
+        data, tried_model, elapsed = self._complete(messages, options)
+        return self._response_from_raw(data, tried_model, elapsed, self.provider)
+
+    def ask_chat(self, prompt: str, options: AgentRequestOptions) -> AgentResponse:
+        self._ensure_chat_history_loaded()
+        messages: list[dict[str, str]] = []
+        messages.append(_chat_session_system_message(options))
+        messages.extend(self._chat_history)
+        messages.append({"role": "user", "content": prompt})
+        data, tried_model, elapsed = self._complete(messages, options)
+        response = self._response_from_raw(data, tried_model, elapsed, self.provider)
+        self._chat_history.append({"role": "user", "content": prompt})
+        self._chat_history.append({"role": "assistant", "content": response.answer})
+        if self.chat_history_path:
+            try:
+                save_chat_messages(self.chat_history_path, self._chat_history)
+            except OSError as exc:
+                print(f"Warning: could not save chat history: {exc}", file=sys.stderr)
+        return response
