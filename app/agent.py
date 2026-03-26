@@ -35,6 +35,22 @@ class AgentRequestOptions:
     max_output_tokens: Optional[int]
     stop_sequences: list[str]
     finish_instruction: Optional[str]
+    count_tokens: bool = False
+
+
+@dataclass
+class AgentTokenStats:
+    # tokens for current user message contribution in the current request (excludes system prompt)
+    current_request_tokens: Optional[int]
+    # tokens for previous chat messages contribution in the current request (excludes system prompt)
+    dialog_history_tokens: Optional[int]
+    # tokens produced by the model (completion tokens)
+    response_model_tokens: Optional[int]
+    # prompt_tokens as returned by the provider for the actual request
+    prompt_tokens_total: Optional[int]
+    # completion_tokens as returned by the provider for the actual request
+    completion_tokens: Optional[int]
+    total_tokens: Optional[int]
 
 
 @dataclass
@@ -44,6 +60,7 @@ class AgentResponse:
     model: str
     latency_sec: float
     provider: str
+    token_stats: Optional[dict] = None
 
 
 def load_env_file(path: str = ".env") -> None:
@@ -257,6 +274,9 @@ class SimpleLLMAgent:
         self.ssl_context = build_ssl_context()
         self._chat_history: list[dict[str, str]] = []
         self._chat_history_loaded = False
+        # Cache system-only prompt token counts to reduce extra dry-run calls.
+        # Key: (model, system_message_content)
+        self._system_only_prompt_tokens_cache: dict[tuple[str, str], int] = {}
 
     @classmethod
     def from_env(cls) -> "SimpleLLMAgent":
@@ -271,6 +291,69 @@ class SimpleLLMAgent:
         else:
             self._chat_history = []
         self._chat_history_loaded = True
+
+    @staticmethod
+    def _extract_prompt_completion_total_tokens(data: dict) -> tuple[Optional[int], Optional[int], Optional[int]]:
+        usage = data.get("usage", {}) or {}
+        return usage.get("prompt_tokens"), usage.get("completion_tokens"), usage.get("total_tokens")
+
+    def _dry_run_prompt_tokens(
+        self,
+        model: str,
+        messages: list[dict[str, str]],
+        options: AgentRequestOptions,
+    ) -> Optional[int]:
+        """
+        Cheap call to estimate prompt tokens for provided messages.
+        Completion is limited to keep cost low; output is ignored.
+        """
+
+        dry_options = AgentRequestOptions(
+            temperature=options.temperature,
+            top_p=options.top_p,
+            top_k=options.top_k,
+            response_format=options.response_format,
+            max_output_tokens=1,
+            stop_sequences=[],
+            finish_instruction=options.finish_instruction,
+            count_tokens=False,
+        )
+        try:
+            data = _post_chat_completion(
+                api_url=self.api_url,
+                api_key=self.api_key,
+                model=model,
+                messages=messages,
+                ssl_context=self.ssl_context,
+                options=dry_options,
+            )
+        except Exception:
+            return None
+
+        prompt_tokens, _, _ = self._extract_prompt_completion_total_tokens(data)
+        return prompt_tokens
+
+    def _system_only_prompt_tokens(
+        self,
+        model: str,
+        system_msg: dict[str, str],
+        options: AgentRequestOptions,
+    ) -> Optional[int]:
+        cache_key = (model, system_msg.get("content", ""))
+        cached = self._system_only_prompt_tokens_cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        prompt_tokens = self._dry_run_prompt_tokens(
+            model=model,
+            messages=[system_msg],
+            options=options,
+        )
+        if prompt_tokens is None:
+            return None
+
+        self._system_only_prompt_tokens_cache[cache_key] = prompt_tokens
+        return prompt_tokens
 
     def _complete(
         self, messages: list[dict[str, str]], options: AgentRequestOptions
@@ -369,16 +452,76 @@ class SimpleLLMAgent:
             messages.append(system_msg)
         messages.append({"role": "user", "content": prompt})
         data, tried_model, elapsed = self._complete(messages, options)
-        return self._response_from_raw(data, tried_model, elapsed, self.provider)
+        response = self._response_from_raw(data, tried_model, elapsed, self.provider)
+
+        if options.count_tokens:
+            prompt_tokens_full, completion_tokens, total_tokens = self._extract_prompt_completion_total_tokens(data)
+            system_only_tokens: Optional[int] = None
+            if system_msg:
+                system_only_tokens = self._system_only_prompt_tokens(tried_model, system_msg, options)
+
+            dialog_history_tokens: Optional[int] = 0
+            if prompt_tokens_full is None:
+                current_request_tokens: Optional[int] = None
+            elif system_only_tokens is None:
+                current_request_tokens = prompt_tokens_full
+            else:
+                current_request_tokens = max(0, prompt_tokens_full - system_only_tokens)
+
+            response.token_stats = AgentTokenStats(
+                current_request_tokens=current_request_tokens,
+                dialog_history_tokens=dialog_history_tokens,
+                response_model_tokens=completion_tokens,
+                prompt_tokens_total=prompt_tokens_full,
+                completion_tokens=completion_tokens,
+                total_tokens=total_tokens,
+            ).__dict__
+
+        return response
 
     def ask_chat(self, prompt: str, options: AgentRequestOptions) -> AgentResponse:
         self._ensure_chat_history_loaded()
         messages: list[dict[str, str]] = []
-        messages.append(_chat_session_system_message(options))
+        system_msg = _chat_session_system_message(options)
+        messages.append(system_msg)
         messages.extend(self._chat_history)
         messages.append({"role": "user", "content": prompt})
         data, tried_model, elapsed = self._complete(messages, options)
         response = self._response_from_raw(data, tried_model, elapsed, self.provider)
+
+        if options.count_tokens:
+            prompt_tokens_full, completion_tokens, total_tokens = self._extract_prompt_completion_total_tokens(data)
+
+            # "dialog history" tokens: all previous chat messages (excluding system message).
+            # We'll estimate it as:
+            #   (system + history) prompt tokens - (system only) prompt tokens
+            history_messages = [system_msg] + self._chat_history
+            prompt_tokens_history_with_system = self._dry_run_prompt_tokens(
+                model=tried_model,
+                messages=history_messages,
+                options=options,
+            )
+            system_only_tokens = self._system_only_prompt_tokens(tried_model, system_msg, options)
+
+            if prompt_tokens_full is None or prompt_tokens_history_with_system is None:
+                current_request_tokens: Optional[int] = None
+            else:
+                current_request_tokens = max(0, prompt_tokens_full - prompt_tokens_history_with_system)
+
+            if prompt_tokens_history_with_system is None or system_only_tokens is None:
+                dialog_history_tokens: Optional[int] = None
+            else:
+                dialog_history_tokens = max(0, prompt_tokens_history_with_system - system_only_tokens)
+
+            response.token_stats = AgentTokenStats(
+                current_request_tokens=current_request_tokens,
+                dialog_history_tokens=dialog_history_tokens,
+                response_model_tokens=completion_tokens,
+                prompt_tokens_total=prompt_tokens_full,
+                completion_tokens=completion_tokens,
+                total_tokens=total_tokens,
+            ).__dict__
+
         self._chat_history.append({"role": "user", "content": prompt})
         self._chat_history.append({"role": "assistant", "content": response.answer})
         if self.chat_history_path:

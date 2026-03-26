@@ -79,6 +79,14 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Run interactive chat mode (type 'exit' to quit).",
     )
+    parser.add_argument(
+        "--tokens",
+        action="store_true",
+        help=(
+            "Print token breakdown: current request tokens, dialog history tokens, and model response tokens. "
+            "For chat mode this may add extra API calls to estimate tokens for history/current parts."
+        ),
+    )
     args = parser.parse_args()
 
     if not 0 <= args.temperature <= 2:
@@ -131,4 +139,28 @@ def print_verbose_stats(data: dict, provider: str, model: str, elapsed_sec: floa
     if cost is not None:
         stats_lines.append(f"cost={cost}")
 
+    print("\n".join(stats_lines), file=sys.stderr)
+
+
+def print_token_stats(token_stats: dict, provider: str, model: str) -> None:
+    """
+    token_stats expected keys:
+      - current_request_tokens
+      - dialog_history_tokens
+      - response_model_tokens
+      - prompt_tokens_total
+      - completion_tokens
+      - total_tokens
+    """
+
+    stats_lines = [
+        f"[tokens] provider={provider}",
+        f"model={model}",
+        f"current_request_tokens={token_stats.get('current_request_tokens')}",
+        f"dialog_history_tokens={token_stats.get('dialog_history_tokens')}",
+        f"response_model_tokens={token_stats.get('response_model_tokens')}",
+        f"prompt_tokens_total={token_stats.get('prompt_tokens_total')}",
+        f"completion_tokens={token_stats.get('completion_tokens')}",
+        f"total_tokens={token_stats.get('total_tokens')}",
+    ]
     print("\n".join(stats_lines), file=sys.stderr)
