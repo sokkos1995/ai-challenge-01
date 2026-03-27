@@ -163,6 +163,61 @@ def _chat_session_system_message(options: AgentRequestOptions) -> dict[str, str]
     return {"role": "system", "content": "\n\n".join(parts)}
 
 
+def _chat_summary_system_message(summary: str) -> Optional[dict[str, str]]:
+    clean_summary = summary.strip()
+    if not clean_summary:
+        return None
+    return {
+        "role": "system",
+        "content": (
+            "Conversation memory summary for older turns (this replaces full old history):\n"
+            f"{clean_summary}"
+        ),
+    }
+
+
+def _chat_message_to_line(msg: dict[str, str]) -> str:
+    role = str(msg.get("role", "user")).strip() or "user"
+    content = str(msg.get("content", "")).strip().replace("\n", "\\n")
+    return f"{role}: {content}"
+
+
+def _chat_summary_update_messages(previous_summary: str, chunk: list[dict[str, str]]) -> list[dict[str, str]]:
+    chunk_text = "\n".join(_chat_message_to_line(msg) for msg in chunk)
+    prior = previous_summary.strip() or "(empty)"
+    prompt = (
+        "Update the running conversation summary.\n"
+        "Requirements:\n"
+        "- Keep key user facts, constraints, preferences, and unresolved tasks.\n"
+        "- Keep concrete decisions and important outputs.\n"
+        "- Remove redundancy and small talk.\n"
+        "- Keep it concise (5-12 bullet points max).\n"
+        "- Output plain text only.\n\n"
+        "Previous summary:\n"
+        f"{prior}\n\n"
+        "New messages to merge:\n"
+        f"{chunk_text}"
+    )
+    return [
+        {"role": "system", "content": "You are a chat memory compressor."},
+        {"role": "user", "content": prompt},
+    ]
+
+
+def _positive_int_from_env(var_name: str, default: int) -> int:
+    raw = os.getenv(var_name)
+    if raw is None:
+        return default
+    stripped = raw.strip()
+    if not stripped:
+        return default
+    try:
+        value = int(stripped)
+    except ValueError:
+        return default
+    return value if value > 0 else default
+
+
 def _ensure_chat_db_parent(path: str) -> None:
     parent = os.path.dirname(os.path.abspath(path))
     if parent:
@@ -176,6 +231,14 @@ def _init_chat_db(conn: sqlite3.Connection) -> None:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
             content TEXT NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS chat_summary (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            summary TEXT NOT NULL
         )
         """
     )
@@ -195,7 +258,19 @@ def load_chat_messages(path: str) -> list[dict[str, str]]:
     return [{"role": str(role), "content": str(content)} for role, content in rows]
 
 
-def save_chat_messages(path: str, messages: list[dict[str, str]]) -> None:
+def load_chat_summary(path: str) -> str:
+    if not os.path.exists(path):
+        return ""
+    conn = sqlite3.connect(path)
+    try:
+        _init_chat_db(conn)
+        row = conn.execute("SELECT summary FROM chat_summary WHERE id = 1").fetchone()
+    finally:
+        conn.close()
+    return str(row[0]) if row and row[0] is not None else ""
+
+
+def save_chat_state(path: str, messages: list[dict[str, str]], summary: str) -> None:
     _ensure_chat_db_parent(path)
     conn = sqlite3.connect(path)
     try:
@@ -205,6 +280,13 @@ def save_chat_messages(path: str, messages: list[dict[str, str]]) -> None:
         conn.executemany(
             "INSERT INTO chat_messages (role, content) VALUES (?, ?)",
             [(m["role"], m["content"]) for m in messages],
+        )
+        conn.execute(
+            """
+            INSERT INTO chat_summary (id, summary) VALUES (1, ?)
+            ON CONFLICT(id) DO UPDATE SET summary=excluded.summary
+            """,
+            (summary,),
         )
         conn.commit()
     except Exception:
@@ -265,14 +347,21 @@ class SimpleLLMAgent:
         api_key: str,
         model_candidates: list[str],
         chat_history_path: Optional[str] = None,
+        chat_keep_last_n: int = 10,
+        chat_summary_batch_size: int = 10,
+        chat_summary_enabled: bool = False,
     ) -> None:
         self.provider = provider
         self.api_url = api_url
         self.api_key = api_key
         self.model_candidates = model_candidates
         self.chat_history_path = chat_history_path
+        self.chat_keep_last_n = max(1, chat_keep_last_n)
+        self.chat_summary_batch_size = max(1, chat_summary_batch_size)
+        self.chat_summary_enabled = chat_summary_enabled
         self.ssl_context = build_ssl_context()
         self._chat_history: list[dict[str, str]] = []
+        self._chat_summary: str = ""
         self._chat_history_loaded = False
         # Cache system-only prompt token counts to reduce extra dry-run calls.
         # Key: (model, system_message_content)
@@ -281,16 +370,62 @@ class SimpleLLMAgent:
     @classmethod
     def from_env(cls) -> "SimpleLLMAgent":
         provider, api_url, api_key, model_candidates = get_provider_config()
-        return cls(provider, api_url, api_key, model_candidates, _chat_history_path_from_env())
+        return cls(
+            provider,
+            api_url,
+            api_key,
+            model_candidates,
+            _chat_history_path_from_env(),
+            _positive_int_from_env("LLM_CHAT_KEEP_LAST_N", 10),
+            _positive_int_from_env("LLM_CHAT_SUMMARY_BATCH_SIZE", 10),
+            False,
+        )
 
     def _ensure_chat_history_loaded(self) -> None:
         if self._chat_history_loaded:
             return
         if self.chat_history_path:
             self._chat_history = load_chat_messages(self.chat_history_path)
+            self._chat_summary = load_chat_summary(self.chat_history_path)
         else:
             self._chat_history = []
+            self._chat_summary = ""
         self._chat_history_loaded = True
+
+    def set_summary_mode(self, enabled: bool) -> None:
+        self.chat_summary_enabled = enabled
+
+    def get_chat_summary(self) -> str:
+        self._ensure_chat_history_loaded()
+        return self._chat_summary
+
+    def _summarize_history_chunk(
+        self, chunk: list[dict[str, str]], current_summary: str, options: AgentRequestOptions
+    ) -> str:
+        summary_options = AgentRequestOptions(
+            temperature=min(options.temperature, 0.3),
+            top_p=options.top_p,
+            top_k=options.top_k,
+            response_format=None,
+            max_output_tokens=500,
+            stop_sequences=[],
+            finish_instruction=None,
+            count_tokens=False,
+        )
+        data, tried_model, elapsed = self._complete(
+            _chat_summary_update_messages(current_summary, chunk), summary_options
+        )
+        response = self._response_from_raw(data, tried_model, elapsed, self.provider)
+        return response.answer.strip()
+
+    def _compress_chat_history_if_needed(self, options: AgentRequestOptions) -> None:
+        if self.chat_summary_batch_size <= 0:
+            return
+        while len(self._chat_history) - self.chat_keep_last_n >= self.chat_summary_batch_size:
+            chunk = self._chat_history[: self.chat_summary_batch_size]
+            new_summary = self._summarize_history_chunk(chunk, self._chat_summary, options)
+            self._chat_summary = new_summary
+            self._chat_history = self._chat_history[self.chat_summary_batch_size :]
 
     @staticmethod
     def _extract_prompt_completion_total_tokens(data: dict) -> tuple[Optional[int], Optional[int], Optional[int]]:
@@ -484,6 +619,9 @@ class SimpleLLMAgent:
         messages: list[dict[str, str]] = []
         system_msg = _chat_session_system_message(options)
         messages.append(system_msg)
+        summary_msg = _chat_summary_system_message(self._chat_summary) if self.chat_summary_enabled else None
+        if summary_msg:
+            messages.append(summary_msg)
         messages.extend(self._chat_history)
         messages.append({"role": "user", "content": prompt})
         data, tried_model, elapsed = self._complete(messages, options)
@@ -495,7 +633,10 @@ class SimpleLLMAgent:
             # "dialog history" tokens: all previous chat messages (excluding system message).
             # We'll estimate it as:
             #   (system + history) prompt tokens - (system only) prompt tokens
-            history_messages = [system_msg] + self._chat_history
+            history_messages = [system_msg]
+            if summary_msg:
+                history_messages.append(summary_msg)
+            history_messages.extend(self._chat_history)
             prompt_tokens_history_with_system = self._dry_run_prompt_tokens(
                 model=tried_model,
                 messages=history_messages,
@@ -524,9 +665,14 @@ class SimpleLLMAgent:
 
         self._chat_history.append({"role": "user", "content": prompt})
         self._chat_history.append({"role": "assistant", "content": response.answer})
+        if self.chat_summary_enabled:
+            try:
+                self._compress_chat_history_if_needed(options)
+            except Exception as exc:
+                print(f"Warning: could not compress chat history: {exc}", file=sys.stderr)
         if self.chat_history_path:
             try:
-                save_chat_messages(self.chat_history_path, self._chat_history)
+                save_chat_state(self.chat_history_path, self._chat_history, self._chat_summary)
             except OSError as exc:
                 print(f"Warning: could not save chat history: {exc}", file=sys.stderr)
         return response

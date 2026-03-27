@@ -9,6 +9,7 @@ def main() -> None:
     load_env_file()
     args = parse_args()
     agent = SimpleLLMAgent.from_env()
+    agent.set_summary_mode(bool(getattr(args, "summary", False)))
     tokens_enabled = bool(getattr(args, "tokens", False))
     last_token_stats = None
     last_token_provider = None
@@ -28,6 +29,7 @@ def main() -> None:
     try:
         if args.chat:
             print("Interactive mode started. Type your message and press Enter. Type 'exit' to quit.")
+            print(f"Chat summary mode: {'ON' if agent.chat_summary_enabled else 'OFF'}")
             if agent.chat_history_path:
                 print(
                     f"Chat history SQLite (restored on restart): {os.path.abspath(agent.chat_history_path)}"
@@ -53,6 +55,17 @@ def main() -> None:
                             last_token_provider or agent.provider,
                             last_token_model or agent.model_candidates[0],
                         )
+                    continue
+
+                if user_input.lower() == "@summary":
+                    if not agent.chat_summary_enabled:
+                        print("agent> Summary mode is OFF. Run with --summary to enable.")
+                    else:
+                        summary = agent.get_chat_summary().strip()
+                        if summary:
+                            print(f"agent> Summary:\n{summary}")
+                        else:
+                            print("agent> Summary is empty yet.")
                     continue
 
                 response = agent.ask_chat(user_input, options)
