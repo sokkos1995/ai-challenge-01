@@ -85,6 +85,16 @@ def parse_args() -> argparse.Namespace:
         help="Enable chat summary mode (use summary + last N messages instead of full history).",
     )
     parser.add_argument(
+        "--context-strategy",
+        dest="context_strategy",
+        choices=["full", "summary", "sliding", "facts", "branching"],
+        default=None,
+        help=(
+            "Context strategy for chat mode (--chat). If not set: uses 'summary' when --summary is provided, else 'full'. "
+            "Choices: full, summary, sliding, facts, branching."
+        ),
+    )
+    parser.add_argument(
         "--tokens",
         action="store_true",
         help=(

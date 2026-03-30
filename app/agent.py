@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import json
 import os
 import sqlite3
@@ -61,6 +61,26 @@ class AgentResponse:
     latency_sec: float
     provider: str
     token_stats: Optional[dict] = None
+
+
+@dataclass
+class FactsState:
+    # Key-value "sticky facts" extracted from user messages.
+    facts: dict[str, str] = field(default_factory=dict)
+    # Recent messages used as additional context (truncated by strategy).
+    history: list[dict[str, str]] = field(default_factory=list)
+
+
+@dataclass
+class BranchState:
+    # Shared prefix before branching (checkpoint).
+    root_messages: list[dict[str, str]] = field(default_factory=list)
+    # Snapshot of conversation at the moment of @checkpoint (optional).
+    checkpoint_messages: Optional[list[dict[str, str]]] = None
+    # Branch histories after fork: keys are "1" and "2".
+    branches: dict[str, list[dict[str, str]]] = field(default_factory=dict)
+    # Active branch id ("1" or "2") or None if we are still before the first fork.
+    active_branch: Optional[str] = None
 
 
 def load_env_file(path: str = ".env") -> None:
@@ -366,6 +386,18 @@ class SimpleLLMAgent:
         # Cache system-only prompt token counts to reduce extra dry-run calls.
         # Key: (model, system_message_content)
         self._system_only_prompt_tokens_cache: dict[tuple[str, str], int] = {}
+        # Context strategy for chat mode.
+        # - full: full history
+        # - summary: summary + last N (legacy day_09)
+        # - sliding: last N only
+        # - facts: sticky key-value facts + last N messages
+        # - branching: two independent branches created from a checkpoint
+        self.context_strategy: str = "full"
+
+        # Strategy-local state (kept in-memory during this process).
+        self._sliding_history: list[dict[str, str]] = []
+        self._facts_state: FactsState = FactsState()
+        self._branch_state: BranchState = BranchState()
 
     @classmethod
     def from_env(cls) -> "SimpleLLMAgent":
@@ -394,6 +426,121 @@ class SimpleLLMAgent:
 
     def set_summary_mode(self, enabled: bool) -> None:
         self.chat_summary_enabled = enabled
+
+    def set_context_strategy(self, strategy: str) -> None:
+        normalized = strategy.lower().strip()
+        allowed = {"full", "summary", "sliding", "facts", "branching"}
+        if normalized not in allowed:
+            raise ValueError(f"Unknown context strategy: {strategy}. Allowed: {sorted(allowed)}")
+        self.context_strategy = normalized
+        # Keep legacy day_09 "summary mode" in sync with the chosen strategy.
+        self.chat_summary_enabled = normalized == "summary"
+
+    def _branch_base_messages(self) -> list[dict[str, str]]:
+        bs = self._branch_state
+        if bs.active_branch is None:
+            return list(bs.root_messages)
+        return list(bs.root_messages) + list(bs.branches.get(bs.active_branch, []))
+
+    def branch_checkpoint(self) -> None:
+        if self.context_strategy != "branching":
+            raise RuntimeError("branch_checkpoint() is only available in context_strategy='branching'")
+        self._branch_state.checkpoint_messages = self._branch_base_messages()
+
+    def branch_fork(self) -> None:
+        if self.context_strategy != "branching":
+            raise RuntimeError("branch_fork() is only available in context_strategy='branching'")
+        bs = self._branch_state
+        checkpoint = bs.checkpoint_messages if bs.checkpoint_messages is not None else self._branch_base_messages()
+        bs.root_messages = list(checkpoint)
+        bs.branches = {"1": [], "2": []}
+        bs.active_branch = "1"
+        bs.checkpoint_messages = None
+
+    def branch_switch(self, branch_id: str) -> None:
+        if self.context_strategy != "branching":
+            raise RuntimeError("branch_switch() is only available in context_strategy='branching'")
+        normalized = branch_id.strip()
+        if normalized not in {"1", "2"}:
+            raise ValueError("branch_id must be '1' or '2'")
+        bs = self._branch_state
+        if not bs.branches:
+            raise RuntimeError("No branches yet. Run branch_fork() first.")
+        bs.active_branch = normalized
+
+    def get_branch_info(self) -> str:
+        if self.context_strategy != "branching":
+            return "Branching is not active."
+        bs = self._branch_state
+        checkpoint_set = bs.checkpoint_messages is not None
+        active = bs.active_branch or "(pre-fork)"
+        b1_len = len(bs.branches.get("1", []))
+        b2_len = len(bs.branches.get("2", []))
+        return (
+            f"checkpoint_set={checkpoint_set}, active_branch={active}, "
+            f"branch1_messages={b1_len}, branch2_messages={b2_len}, "
+            f"root_messages={len(bs.root_messages)}"
+        )
+
+    @staticmethod
+    def _extract_sticky_fact_update(user_message: str) -> Optional[tuple[str, str]]:
+        """
+        Lightweight heuristic for extracting "sticky facts" from user messages.
+        This avoids extra LLM calls and fits the day_10 requirement: update after each user message.
+        """
+        raw = user_message.strip()
+        if not raw:
+            return None
+
+        lower = raw.lower()
+
+        def value_after_first_colon(text: str) -> str:
+            if ":" in text:
+                return text.split(":", 1)[1].strip()
+            return text.strip()
+
+        # Common labels in the provided scenario (day_09/day_10).
+        if "запомни" in lower:
+            value = value_after_first_colon(raw)
+        else:
+            value = raw
+
+        # Choose a key by keyword.
+        if "стек" in lower:
+            return ("stack", value)
+        if "дедлайн" in lower:
+            return ("deadline", value)
+        if "ограничен" in lower:
+            return ("constraints", value)
+        if "предпочит" in lower or "коротк" in lower or "списком" in lower:
+            return ("preference", value)
+        if "формат" in lower:
+            return ("output_format", value)
+        if "цель" in lower:
+            return ("goal", value)
+
+        # If there's no recognizable label, don't change facts.
+        return None
+
+    def _update_facts_from_user_message(self, user_message: str) -> None:
+        if self.context_strategy != "facts":
+            return
+        update = self._extract_sticky_fact_update(user_message)
+        if update is None:
+            return
+        key, value = update
+        cleaned_value = value.strip()
+        if cleaned_value:
+            self._facts_state.facts[key] = cleaned_value
+
+    def _facts_system_message(self) -> dict[str, str]:
+        facts_json = json.dumps(self._facts_state.facts, ensure_ascii=True)
+        content = (
+            "facts (key-value memory extracted from the user):\n"
+            f"{facts_json}\n\n"
+            "Use these facts as ground truth. If you need missing details, ask the user."
+        )
+        return {"role": "system", "content": content}
 
     def get_chat_summary(self) -> str:
         self._ensure_chat_history_loaded()
@@ -615,31 +762,54 @@ class SimpleLLMAgent:
         return response
 
     def ask_chat(self, prompt: str, options: AgentRequestOptions) -> AgentResponse:
-        self._ensure_chat_history_loaded()
-        messages: list[dict[str, str]] = []
+        user_msg: dict[str, str] = {"role": "user", "content": prompt}
         system_msg = _chat_session_system_message(options)
-        messages.append(system_msg)
-        summary_msg = _chat_summary_system_message(self._chat_summary) if self.chat_summary_enabled else None
-        if summary_msg:
-            messages.append(summary_msg)
-        messages.extend(self._chat_history)
-        messages.append({"role": "user", "content": prompt})
-        data, tried_model, elapsed = self._complete(messages, options)
+
+        context_messages: list[dict[str, str]] = []
+        history_without_current: list[dict[str, str]] = []
+        payload_messages: list[dict[str, str]]
+
+        strategy = self.context_strategy
+        if strategy in {"full", "summary"}:
+            self._ensure_chat_history_loaded()
+            history_without_current = list(self._chat_history)
+            if self.chat_summary_enabled:
+                summary_msg = _chat_summary_system_message(self._chat_summary)
+                if summary_msg:
+                    context_messages.append(summary_msg)
+            payload_messages = [system_msg] + context_messages + history_without_current + [user_msg]
+
+        elif strategy == "sliding":
+            combined = list(self._sliding_history) + [user_msg]
+            context_with_current = combined[-self.chat_keep_last_n :]
+            payload_messages = [system_msg] + context_with_current
+            history_without_current = context_with_current[:-1]
+
+        elif strategy == "facts":
+            self._update_facts_from_user_message(prompt)
+            context_messages.append(self._facts_system_message())
+            combined = list(self._facts_state.history) + [user_msg]
+            context_with_current = combined[-self.chat_keep_last_n :]
+            payload_messages = [system_msg] + context_messages + context_with_current
+            history_without_current = context_with_current[:-1]
+
+        elif strategy == "branching":
+            history_without_current = self._branch_base_messages()
+            payload_messages = [system_msg] + history_without_current + [user_msg]
+
+        else:
+            raise RuntimeError(f"Unsupported context strategy: {strategy}")
+
+        data, tried_model, elapsed = self._complete(payload_messages, options)
         response = self._response_from_raw(data, tried_model, elapsed, self.provider)
 
         if options.count_tokens:
             prompt_tokens_full, completion_tokens, total_tokens = self._extract_prompt_completion_total_tokens(data)
 
-            # "dialog history" tokens: all previous chat messages (excluding system message).
-            # We'll estimate it as:
-            #   (system + history) prompt tokens - (system only) prompt tokens
-            history_messages = [system_msg]
-            if summary_msg:
-                history_messages.append(summary_msg)
-            history_messages.extend(self._chat_history)
+            # History tokens: prompt_tokens(system + context + history) - prompt_tokens(system only)
             prompt_tokens_history_with_system = self._dry_run_prompt_tokens(
                 model=tried_model,
-                messages=history_messages,
+                messages=[system_msg] + context_messages + history_without_current,
                 options=options,
             )
             system_only_tokens = self._system_only_prompt_tokens(tried_model, system_msg, options)
@@ -663,16 +833,34 @@ class SimpleLLMAgent:
                 total_tokens=total_tokens,
             ).__dict__
 
-        self._chat_history.append({"role": "user", "content": prompt})
-        self._chat_history.append({"role": "assistant", "content": response.answer})
-        if self.chat_summary_enabled:
-            try:
-                self._compress_chat_history_if_needed(options)
-            except Exception as exc:
-                print(f"Warning: could not compress chat history: {exc}", file=sys.stderr)
-        if self.chat_history_path:
-            try:
-                save_chat_state(self.chat_history_path, self._chat_history, self._chat_summary)
-            except OSError as exc:
-                print(f"Warning: could not save chat history: {exc}", file=sys.stderr)
+        assistant_msg: dict[str, str] = {"role": "assistant", "content": response.answer}
+        if strategy in {"full", "summary"}:
+            self._chat_history.append(user_msg)
+            self._chat_history.append(assistant_msg)
+            if self.chat_summary_enabled:
+                try:
+                    self._compress_chat_history_if_needed(options)
+                except Exception as exc:
+                    print(f"Warning: could not compress chat history: {exc}", file=sys.stderr)
+            if self.chat_history_path:
+                try:
+                    save_chat_state(self.chat_history_path, self._chat_history, self._chat_summary)
+                except OSError as exc:
+                    print(f"Warning: could not save chat history: {exc}", file=sys.stderr)
+
+        elif strategy == "sliding":
+            combined_after = list(self._sliding_history) + [user_msg, assistant_msg]
+            self._sliding_history = combined_after[-self.chat_keep_last_n :]
+
+        elif strategy == "facts":
+            combined_after = list(self._facts_state.history) + [user_msg, assistant_msg]
+            self._facts_state.history = combined_after[-self.chat_keep_last_n :]
+
+        elif strategy == "branching":
+            bs = self._branch_state
+            if bs.active_branch is None:
+                bs.root_messages.extend([user_msg, assistant_msg])
+            else:
+                bs.branches.setdefault(bs.active_branch, []).extend([user_msg, assistant_msg])
+
         return response

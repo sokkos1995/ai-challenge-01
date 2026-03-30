@@ -9,7 +9,12 @@ def main() -> None:
     load_env_file()
     args = parse_args()
     agent = SimpleLLMAgent.from_env()
-    agent.set_summary_mode(bool(getattr(args, "summary", False)))
+    if getattr(args, "context_strategy", None):
+        if bool(getattr(args, "summary", False)):
+            print("Warning: --summary is ignored when --context-strategy is set.", file=sys.stderr)
+        agent.set_context_strategy(str(args.context_strategy))
+    else:
+        agent.set_context_strategy("summary" if bool(getattr(args, "summary", False)) else "full")
     tokens_enabled = bool(getattr(args, "tokens", False))
     last_token_stats = None
     last_token_provider = None
@@ -29,11 +34,9 @@ def main() -> None:
     try:
         if args.chat:
             print("Interactive mode started. Type your message and press Enter. Type 'exit' to quit.")
-            print(f"Chat summary mode: {'ON' if agent.chat_summary_enabled else 'OFF'}")
-            if agent.chat_history_path:
-                print(
-                    f"Chat history SQLite (restored on restart): {os.path.abspath(agent.chat_history_path)}"
-                )
+            print(f"Context strategy: {agent.context_strategy}")
+            if agent.chat_history_path and agent.context_strategy in {"full", "summary"}:
+                print(f"Chat history SQLite (restored on restart): {os.path.abspath(agent.chat_history_path)}")
             while True:
                 user_input = input("you> ").strip()
                 if not user_input:
@@ -67,6 +70,29 @@ def main() -> None:
                         else:
                             print("agent> Summary is empty yet.")
                     continue
+
+                if agent.context_strategy == "branching":
+                    cmd = user_input.lower()
+                    if cmd == "@branches" or cmd == "@branch-info":
+                        print(f"agent> {agent.get_branch_info()}")
+                        continue
+                    if cmd == "@checkpoint":
+                        agent.branch_checkpoint()
+                        print("agent> checkpoint saved.")
+                        continue
+                    if cmd == "@fork":
+                        agent.branch_fork()
+                        print("agent> fork created (branch 1 active).")
+                        continue
+                    if cmd.startswith("@switch"):
+                        parts = user_input.split()
+                        branch_id = parts[1] if len(parts) >= 2 else ""
+                        if not branch_id:
+                            print("agent> Usage: @switch 1  (or  @switch 2).")
+                            continue
+                        agent.branch_switch(branch_id)
+                        print(f"agent> switched to branch {branch_id}.")
+                        continue
 
                 response = agent.ask_chat(user_input, options)
                 print(f"agent> {response.answer}")
