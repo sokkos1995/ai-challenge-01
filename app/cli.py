@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 
@@ -70,6 +71,53 @@ def main() -> None:
                         else:
                             print("agent> Summary is empty yet.")
                     continue
+
+                if user_input.lower().startswith("@mem"):
+                    try:
+                        if user_input.lower() == "@mem show":
+                            snapshot = agent.memory_snapshot()
+                            print(f"agent> memory:\n{json.dumps(snapshot, ensure_ascii=False, indent=2)}")
+                            continue
+                        if user_input.lower().startswith("@mem clear "):
+                            layer = user_input[len("@mem clear ") :].strip()
+                            agent.clear_memory_layer(layer)
+                            print(f"agent> memory layer cleared: {layer}")
+                            continue
+                        if user_input.lower().startswith("@mem short note "):
+                            note = user_input[len("@mem short note ") :].strip()
+                            agent.add_short_term_note(note)
+                            print("agent> short-term note saved.")
+                            continue
+                        if user_input.lower().startswith("@mem work "):
+                            payload = user_input[len("@mem work ") :].strip()
+                            if "=" not in payload:
+                                print("agent> Usage: @mem work <field>=<value>")
+                                continue
+                            field_name, field_value = payload.split("=", 1)
+                            agent.update_working_task_field(field_name.strip(), field_value.strip())
+                            print(f"agent> working memory updated: {field_name.strip()}")
+                            continue
+                        if user_input.lower().startswith("@mem long decision "):
+                            decision = user_input[len("@mem long decision ") :].strip()
+                            agent.add_long_term_decision(decision)
+                            print("agent> long-term decision saved.")
+                            continue
+                        if user_input.lower().startswith("@mem long "):
+                            payload = user_input[len("@mem long ") :].strip()
+                            parts = payload.split(" ", 1)
+                            if len(parts) != 2 or "=" not in parts[1]:
+                                print("agent> Usage: @mem long <profile|knowledge> <key>=<value>")
+                                continue
+                            bucket = parts[0].strip().lower()
+                            key, value = parts[1].split("=", 1)
+                            agent.update_long_term_memory(bucket, key.strip(), value.strip())
+                            print(f"agent> long-term {bucket} updated: {key.strip()}")
+                            continue
+                        print("agent> Unknown @mem command. Use: show, clear, short note, work, long.")
+                        continue
+                    except Exception as exc:
+                        print(f"agent> memory command error: {exc}")
+                        continue
 
                 if agent.context_strategy == "branching":
                     cmd = user_input.lower()

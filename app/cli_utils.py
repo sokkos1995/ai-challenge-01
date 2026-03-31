@@ -87,11 +87,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--context-strategy",
         dest="context_strategy",
-        choices=["full", "summary", "sliding", "facts", "branching"],
+        choices=["full", "summary", "sliding", "facts", "branching", "memory"],
         default=None,
         help=(
             "Context strategy for chat mode (--chat). If not set: uses 'summary' when --summary is provided, else 'full'. "
-            "Choices: full, summary, sliding, facts, branching."
+            "Choices: full, summary, sliding, facts, branching, memory."
         ),
     )
     parser.add_argument(

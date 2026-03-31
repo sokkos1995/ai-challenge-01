@@ -94,7 +94,8 @@ python3 llm_cli.py --chat --summary
 - `summary` — как `--summary` (summary + последние `N`);
 - `sliding` — отправлять только последние `N` сообщений;
 - `facts` — отправлять отдельно накопленные key-value `facts` + последние `N` сообщений;
-- `branching` — поддерживать 2 ветки от checkpoint (см. команды ниже).
+- `branching` — поддерживать 2 ветки от checkpoint (см. команды ниже);
+- `memory` — явные memory layers: `short-term`, `working`, `long-term`.
 
 Команды внутри `branching`:
 - `@checkpoint` — сохранить checkpoint;
@@ -102,9 +103,19 @@ python3 llm_cli.py --chat --summary
 - `@switch 1` / `@switch 2` — переключиться на ветку;
 - `@branches` (или `@branch-info`) — показать состояние веток.
 
+Команды для memory layers (режим `--context-strategy memory`):
+- `@mem show` — показать снимок всех слоев памяти;
+- `@mem clear short|work|long|all` — очистить выбранный слой;
+- `@mem short note <text>` — явно сохранить заметку в краткосрочную память;
+- `@mem work <field>=<value>` — обновить рабочую память (`task`, `state`, `step`, `total`, `plan+`, `done+`, `note+`);
+- `@mem long profile <key>=<value>` — сохранить профиль пользователя в долговременную память;
+- `@mem long knowledge <key>=<value>` — сохранить знание в долговременную память;
+- `@mem long decision <text>` — добавить решение в долговременную память.
+
 Настройки через env:
 - `LLM_CHAT_KEEP_LAST_N` — размер окна последних сообщений (по умолчанию `10`);
-- `LLM_CHAT_SUMMARY_BATCH_SIZE` — размер батча старых сообщений для очередного обновления summary (по умолчанию `10`).
+- `LLM_CHAT_SUMMARY_BATCH_SIZE` — размер батча старых сообщений для очередного обновления summary (по умолчанию `10`);
+- `LLM_MEMORY_BASE_PATH` — базовый путь для memory layers (по умолчанию `.llm_memory`; создаются файлы `.short.db`, `.work.db`, `.long.db`).
 
 Команды внутри чата:
 - `@tokens` / `@tokens off` — включить/выключить вывод токенов;
