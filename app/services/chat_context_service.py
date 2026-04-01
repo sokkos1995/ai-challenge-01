@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from typing import Optional
 
 from app.messages import chat_session_system_message
 from app.models import AgentRequestOptions
-from app.chat_history_service import ChatHistoryService
-from app.memory_service import MemoryService
+from app.services.chat_history_service import ChatHistoryService
+from app.services.memory_service import MemoryService
+from app.services.personalization_service import PersonalizationService
 
 
 @dataclass
@@ -21,19 +21,23 @@ class ChatContextService:
         chat_keep_last_n: int,
         chat_history_service: ChatHistoryService,
         memory_service: MemoryService,
+        personalization_service: PersonalizationService,
     ) -> None:
         self._chat_keep_last_n = max(1, chat_keep_last_n)
         self._chat_history = chat_history_service
         self._memory = memory_service
+        self._personalization = personalization_service
         self._sliding_history: list[dict[str, str]] = []
 
     def build(self, strategy: str, prompt: str, options: AgentRequestOptions) -> ChatPayload:
         user_msg: dict[str, str] = {"role": "user", "content": prompt}
         system_msg = chat_session_system_message(options)
+        personalization_msg = self._personalization.system_message()
+        personalization_messages = [personalization_msg] if personalization_msg else []
 
         if strategy in {"full", "summary"}:
             history_without_current = self._chat_history.get_history_without_current()
-            context_messages: list[dict[str, str]] = []
+            context_messages: list[dict[str, str]] = list(personalization_messages)
             summary_msg = self._chat_history.maybe_build_summary_system_message()
             if summary_msg:
                 context_messages.append(summary_msg)
@@ -48,18 +52,18 @@ class ChatContextService:
         if strategy == "sliding":
             combined = list(self._sliding_history) + [user_msg]
             context_with_current = combined[-self._chat_keep_last_n :]
-            payload_messages = [system_msg] + context_with_current
+            payload_messages = [system_msg] + personalization_messages + context_with_current
             history_without_current = context_with_current[:-1]
             return ChatPayload(
                 system_msg=system_msg,
-                context_messages=[],
+                context_messages=personalization_messages,
                 history_without_current=history_without_current,
                 payload_messages=payload_messages,
             )
 
         if strategy == "facts":
             self._memory.update_facts_from_user_message(prompt)
-            context_messages = self._memory.facts_context_messages()
+            context_messages = list(personalization_messages) + self._memory.facts_context_messages()
             context_with_current = self._memory.facts_build_context_with_user(user_msg)
             payload_messages = [system_msg] + context_messages + context_with_current
             history_without_current = self._memory.facts_history_without_current(context_with_current)
@@ -72,17 +76,16 @@ class ChatContextService:
 
         if strategy == "branching":
             history_without_current = self._memory.branching_history_without_current()
-            payload_messages = [system_msg] + history_without_current + [user_msg]
+            payload_messages = [system_msg] + personalization_messages + history_without_current + [user_msg]
             return ChatPayload(
                 system_msg=system_msg,
-                context_messages=[],
+                context_messages=personalization_messages,
                 history_without_current=history_without_current,
                 payload_messages=payload_messages,
             )
 
         if strategy == "memory":
-            # Memory layers system message is inserted as explicit context.
-            context_messages = [self._memory.memory_layers_system_message()]
+            context_messages = list(personalization_messages) + [self._memory.memory_layers_system_message()]
             context_with_current = self._memory.memory_build_context_with_user(user_msg)
             payload_messages = [system_msg] + context_messages + context_with_current
             history_without_current = context_with_current[:-1]
@@ -124,4 +127,3 @@ class ChatContextService:
             return
 
         raise RuntimeError(f"Unsupported context strategy: {strategy}")
-

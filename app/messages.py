@@ -81,3 +81,27 @@ def facts_system_message(facts: dict[str, str]) -> dict[str, str]:
         "Use these facts as ground truth. If you need missing details, ask the user."
     )
     return {"role": "system", "content": content}
+
+
+def personalization_system_message(user_id: str, profile: dict[str, str]) -> dict[str, str]:
+    profile_json = json.dumps(profile, ensure_ascii=True)
+    content = (
+        f"Personalization profile for user_id={user_id}:\n"
+        f"{profile_json}\n\n"
+        "Automatically adapt answer style, level of detail, output format, and constraints to this user. "
+        "If the current user message explicitly asks for another style or format, follow the current message."
+    )
+    return {"role": "system", "content": content}
+
+
+def merge_system_messages(*messages: Optional[dict[str, str]]) -> Optional[dict[str, str]]:
+    parts = []
+    for message in messages:
+        if not message:
+            continue
+        content = str(message.get("content", "")).strip()
+        if content:
+            parts.append(content)
+    if not parts:
+        return None
+    return {"role": "system", "content": "\n\n".join(parts)}

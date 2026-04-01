@@ -1,16 +1,15 @@
 import ssl
-from typing import Optional, Tuple
+from typing import Optional
 
 from app.models import AgentRequestOptions, AgentTokenStats
 from app.provider_client import post_chat_completion
-from app.provider_service import ProviderService
+from app.services.provider_service import ProviderService
 
 
 class TokenAccountingService:
     def __init__(self, provider_service: ProviderService) -> None:
         self._provider = provider_service
         self._ssl_context: ssl.SSLContext = provider_service.ssl_context
-        # Key: (model, system_message_content)
         self._system_only_prompt_tokens_cache: dict[tuple[str, str], int] = {}
 
     @staticmethod
@@ -139,4 +138,3 @@ class TokenAccountingService:
             completion_tokens=completion_tokens,
             total_tokens=total_tokens,
         )
-

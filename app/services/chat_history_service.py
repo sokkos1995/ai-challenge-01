@@ -3,8 +3,8 @@ from typing import Optional
 
 from app.messages import chat_summary_system_message, chat_summary_update_messages
 from app.models import AgentRequestOptions
-from app.provider_service import ProviderService
 from app.response_parser import parse_agent_response
+from app.services.provider_service import ProviderService
 from app.storage import load_chat_messages, load_chat_summary, save_chat_state
 
 
@@ -97,7 +97,6 @@ class ChatHistoryService:
         try:
             self._compress_chat_history_if_needed(options)
         except Exception:
-            # Compression is a best-effort optimization.
             print(f"Warning: could not compress chat history: {sys.exc_info()[1]}", file=sys.stderr)
 
         if self._chat_history_path:
@@ -105,4 +104,3 @@ class ChatHistoryService:
                 save_chat_state(self._chat_history_path, self._chat_history, self._chat_summary)
             except OSError:
                 pass
-

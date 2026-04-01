@@ -6,10 +6,78 @@ from app.agent import AgentRequestOptions, SimpleLLMAgent, load_env_file
 from app.cli_utils import parse_args, print_token_stats, print_verbose_stats, resolve_prompt
 
 
+def _ask_interview_value(prompt: str, default: str = "") -> str:
+    suffix = f" [{default}]" if default else ""
+    return input(f"{prompt}{suffix}: ").strip() or default
+
+
+def _run_personalization_interview(agent: SimpleLLMAgent) -> None:
+    snapshot = agent.personalization_snapshot()
+    profile = snapshot.get("profile", {})
+    print("agent> New user detected. Let's set up personalization.")
+    answers = {
+        "role": _ask_interview_value("Role / who are you", str(profile.get("role", ""))),
+        "stack": _ask_interview_value("Main stack", str(profile.get("stack", ""))),
+        "answer_detail": _ask_interview_value(
+            "Answer style: brief or detailed",
+            str(profile.get("answer_detail", "brief")),
+        ),
+        "answer_format": _ask_interview_value(
+            "Preferred format (text, bullets, step-by-step, JSON, ...)",
+            str(profile.get("answer_format", "bullets")),
+        ),
+        "constraints": _ask_interview_value(
+            "Constraints (optional)",
+            str(profile.get("constraints", "")),
+        ),
+    }
+    agent.save_user_profile_interview(answers)
+    print("agent> personalization saved.")
+
+
+def _ensure_user_personalization(agent: SimpleLLMAgent) -> None:
+    if not agent.user_id:
+        return
+    created = agent.ensure_user_profile()
+    if created:
+        print(f"User profile created for user_id={agent.user_id}")
+    if agent.user_profile_needs_interview():
+        _run_personalization_interview(agent)
+
+
+def _handle_personalization_command(user_input: str, agent: SimpleLLMAgent) -> bool:
+    if not user_input.lower().startswith("@personalization"):
+        return False
+    if not agent.user_id:
+        print("agent> Personalization is available only with --user-id.")
+        return True
+
+    payload = user_input[len("@personalization") :].strip()
+    if not payload or payload.lower() == "show":
+        snapshot = agent.personalization_snapshot()
+        print(f"agent> personalization:\n{json.dumps(snapshot, ensure_ascii=False, indent=2)}")
+        return True
+    if payload.lower() == "interview":
+        _run_personalization_interview(agent)
+        return True
+    if "=" not in payload:
+        print("agent> Usage: @personalization show | interview | <key>=<value>")
+        return True
+
+    key, value = payload.split("=", 1)
+    clean_key = key.strip()
+    if not clean_key:
+        print("agent> Personalization key must not be empty.")
+        return True
+    agent.update_personalization(clean_key, value.strip())
+    print(f"agent> personalization updated: {clean_key}")
+    return True
+
+
 def main() -> None:
     load_env_file()
     args = parse_args()
-    agent = SimpleLLMAgent.from_env()
+    agent = SimpleLLMAgent.from_env(user_id=getattr(args, "user_id", None))
     if getattr(args, "context_strategy", None):
         if bool(getattr(args, "summary", False)):
             print("Warning: --summary is ignored when --context-strategy is set.", file=sys.stderr)
@@ -33,9 +101,12 @@ def main() -> None:
     )
 
     try:
+        _ensure_user_personalization(agent)
         if args.chat:
             print("Interactive mode started. Type your message and press Enter. Type 'exit' to quit.")
             print(f"Context strategy: {agent.context_strategy}")
+            if agent.user_id:
+                print(f"User ID: {agent.user_id}")
             if agent.chat_history_path and agent.context_strategy in {"full", "summary"}:
                 print(f"Chat history SQLite (restored on restart): {os.path.abspath(agent.chat_history_path)}")
             while True:
@@ -59,6 +130,9 @@ def main() -> None:
                             last_token_provider or agent.provider,
                             last_token_model or agent.model_candidates[0],
                         )
+                    continue
+
+                if _handle_personalization_command(user_input, agent):
                     continue
 
                 if user_input.lower() == "@summary":

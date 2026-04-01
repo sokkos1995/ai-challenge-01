@@ -7,7 +7,6 @@ from app.models import (
     FactsState,
     LongTermMemory,
     ShortTermMemory,
-    TaskState,
     WorkingMemory,
 )
 from app.storage import (
@@ -51,7 +50,6 @@ class MemoryService:
         save_working_memory(self._memory_base_path, self._working_memory)
         save_long_term_memory(self._memory_base_path, self._long_memory)
 
-    # ---- Sticky facts (strategy=facts) ----
     @staticmethod
     def _extract_sticky_fact_update(user_message: str) -> Optional[tuple[str, str]]:
         raw = user_message.strip()
@@ -91,7 +89,6 @@ class MemoryService:
         if cleaned_value:
             self._facts_state.facts[key] = cleaned_value
 
-    # ---- Branching (strategy=branching) ----
     def _branch_base_messages(self) -> list[dict[str, str]]:
         bs = self._branch_state
         if bs.active_branch is None:
@@ -130,7 +127,6 @@ class MemoryService:
             f"root_messages={len(bs.root_messages)}"
         )
 
-    # ---- Memory layers (strategy=memory) + CLI commands ----
     def _memory_layers_system_message(self) -> dict[str, str]:
         task = self._working_memory.current_task
         payload = {
@@ -259,9 +255,7 @@ class MemoryService:
             },
         }
 
-    # ---- Applying state updates after successful completion ----
     def facts_context_messages(self) -> list[dict[str, str]]:
-        # Facts memory is always represented as an additional system message.
         return [facts_system_message(self._facts_state.facts)]
 
     def facts_build_context_with_user(self, user_msg: dict[str, str]) -> list[dict[str, str]]:
@@ -298,4 +292,3 @@ class MemoryService:
         combined_after = list(self._short_memory.dialog_tail) + [user_msg, assistant_msg]
         self._short_memory.dialog_tail = combined_after[-self._chat_keep_last_n :]
         self._save_all_memory_layers()
-

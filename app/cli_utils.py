@@ -80,6 +80,12 @@ def parse_args() -> argparse.Namespace:
         help="Run interactive chat mode (type 'exit' to quit).",
     )
     parser.add_argument(
+        "--user-id",
+        dest="user_id",
+        default=os.getenv("LLM_USER_ID"),
+        help="Logical user identifier for per-user chat state and personalization.",
+    )
+    parser.add_argument(
         "--summary",
         action="store_true",
         help="Enable chat summary mode (use summary + last N messages instead of full history).",

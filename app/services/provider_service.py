@@ -91,4 +91,3 @@ class ProviderService:
             raise RuntimeError("Request failed: no response from provider.")
 
         return data, tried_model, response_elapsed_sec
-

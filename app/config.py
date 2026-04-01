@@ -1,4 +1,5 @@
 import os
+import re
 import ssl
 
 
@@ -113,3 +114,30 @@ def memory_base_path_from_env() -> str:
     raw = os.getenv("LLM_MEMORY_BASE_PATH", ".llm_memory")
     stripped = raw.strip() if raw else ""
     return stripped or ".llm_memory"
+
+
+def users_base_path_from_env() -> str:
+    raw = os.getenv("LLM_USERS_BASE_PATH", ".llm_users")
+    stripped = raw.strip() if raw else ""
+    return stripped or ".llm_users"
+
+
+def sanitize_user_id_for_path(user_id: str) -> str:
+    clean = re.sub(r"[^A-Za-z0-9._-]+", "_", user_id.strip())
+    return clean.strip("._") or "user"
+
+
+def user_scoped_chat_history_path(
+    chat_history_path: str | None,
+    users_base_path: str,
+    user_id: str,
+) -> str | None:
+    if chat_history_path is None:
+        return None
+    file_name = os.path.basename(chat_history_path.strip()) or "chat_history.db"
+    return os.path.join(users_base_path, "sessions", sanitize_user_id_for_path(user_id), file_name)
+
+
+def user_scoped_memory_base_path(memory_base_path: str, users_base_path: str, user_id: str) -> str:
+    base_name = os.path.basename(memory_base_path.strip()) or ".llm_memory"
+    return os.path.join(users_base_path, "sessions", sanitize_user_id_for_path(user_id), base_name)

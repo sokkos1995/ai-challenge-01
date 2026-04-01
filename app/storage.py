@@ -177,6 +177,27 @@ def _init_long_memory_db(conn: sqlite3.Connection) -> None:
     )
 
 
+def _init_user_profile_db(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            user_id TEXT PRIMARY KEY,
+            interview_completed INTEGER NOT NULL DEFAULT 0
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS user_profile_entries (
+            user_id TEXT NOT NULL,
+            key TEXT NOT NULL,
+            value TEXT NOT NULL,
+            PRIMARY KEY (user_id, key)
+        )
+        """
+    )
+
+
 def load_short_term_memory(base_path: str) -> ShortTermMemory:
     path = _short_memory_path(base_path)
     if not os.path.exists(path):
@@ -322,6 +343,127 @@ def save_long_term_memory(base_path: str, state: LongTermMemory) -> None:
         conn.executemany(
             "INSERT INTO long_knowledge (key, value) VALUES (?, ?)",
             [(k, v) for k, v in state.knowledge.items()],
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def ensure_user_record(path: str, user_id: str) -> bool:
+    clean_user_id = user_id.strip()
+    if not clean_user_id:
+        raise ValueError("user_id must not be empty")
+
+    _ensure_db_parent(path)
+    conn = sqlite3.connect(path)
+    try:
+        _init_user_profile_db(conn)
+        conn.execute("BEGIN IMMEDIATE")
+        cursor = conn.execute(
+            "INSERT OR IGNORE INTO users (user_id, interview_completed) VALUES (?, 0)",
+            (clean_user_id,),
+        )
+        conn.commit()
+        return bool(cursor.rowcount)
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def load_user_profile(path: str, user_id: str) -> tuple[dict[str, str], bool]:
+    clean_user_id = user_id.strip()
+    if not clean_user_id:
+        raise ValueError("user_id must not be empty")
+    if not os.path.exists(path):
+        return {}, False
+
+    conn = sqlite3.connect(path)
+    try:
+        _init_user_profile_db(conn)
+        user_row = conn.execute(
+            "SELECT interview_completed FROM users WHERE user_id = ?",
+            (clean_user_id,),
+        ).fetchone()
+        if user_row is None:
+            return {}, False
+        profile_rows = conn.execute(
+            """
+            SELECT key, value
+            FROM user_profile_entries
+            WHERE user_id = ?
+            ORDER BY key ASC
+            """,
+            (clean_user_id,),
+        ).fetchall()
+    finally:
+        conn.close()
+
+    return (
+        {str(key): str(value) for key, value in profile_rows},
+        bool(int(user_row[0])),
+    )
+
+
+def upsert_user_profile_entries(path: str, user_id: str, entries: dict[str, str]) -> None:
+    clean_user_id = user_id.strip()
+    if not clean_user_id:
+        raise ValueError("user_id must not be empty")
+
+    ensure_user_record(path, clean_user_id)
+    _ensure_db_parent(path)
+    conn = sqlite3.connect(path)
+    try:
+        _init_user_profile_db(conn)
+        conn.execute("BEGIN IMMEDIATE")
+        for key, value in entries.items():
+            clean_key = key.strip()
+            if not clean_key:
+                continue
+            clean_value = value.strip()
+            if clean_value:
+                conn.execute(
+                    """
+                    INSERT INTO user_profile_entries (user_id, key, value)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(user_id, key) DO UPDATE SET value = excluded.value
+                    """,
+                    (clean_user_id, clean_key, clean_value),
+                )
+            else:
+                conn.execute(
+                    "DELETE FROM user_profile_entries WHERE user_id = ? AND key = ?",
+                    (clean_user_id, clean_key),
+                )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def set_user_interview_completed(path: str, user_id: str, completed: bool) -> None:
+    clean_user_id = user_id.strip()
+    if not clean_user_id:
+        raise ValueError("user_id must not be empty")
+
+    _ensure_db_parent(path)
+    conn = sqlite3.connect(path)
+    try:
+        _init_user_profile_db(conn)
+        conn.execute("BEGIN IMMEDIATE")
+        conn.execute(
+            """
+            INSERT INTO users (user_id, interview_completed)
+            VALUES (?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET interview_completed = excluded.interview_completed
+            """,
+            (clean_user_id, 1 if completed else 0),
         )
         conn.commit()
     except Exception:

@@ -1,7 +1,5 @@
 from typing import Optional
 
-from app.chat_context_service import ChatContextService
-from app.chat_history_service import ChatHistoryService
 from app.config import (
     build_ssl_context,
     chat_history_path_from_env,
@@ -9,13 +7,19 @@ from app.config import (
     load_env_file,
     memory_base_path_from_env,
     positive_int_from_env,
+    user_scoped_chat_history_path,
+    user_scoped_memory_base_path,
+    users_base_path_from_env,
 )
-from app.messages import constraint_system_message
-from app.memory_service import MemoryService
+from app.messages import constraint_system_message, merge_system_messages
 from app.models import AgentRequestOptions, AgentResponse, AgentTokenStats
-from app.provider_service import ProviderService
 from app.response_parser import parse_agent_response
-from app.token_service import TokenAccountingService
+from app.services.chat_context_service import ChatContextService
+from app.services.chat_history_service import ChatHistoryService
+from app.services.memory_service import MemoryService
+from app.services.personalization_service import PersonalizationService
+from app.services.provider_service import ProviderService
+from app.services.token_service import TokenAccountingService
 
 
 class SimpleLLMAgent:
@@ -35,13 +39,30 @@ class SimpleLLMAgent:
         chat_summary_batch_size: int = 10,
         chat_summary_enabled: bool = False,
         memory_base_path: str = ".llm_memory",
+        users_base_path: str = ".llm_users",
+        user_id: Optional[str] = None,
     ) -> None:
         # Public attrs used by CLI (verbose printing, context prints).
+        self.user_id = user_id.strip() if user_id and user_id.strip() else None
+        self.users_base_path = users_base_path
         self.provider = provider
         self.api_url = api_url
         self.api_key = api_key
         self.model_candidates = model_candidates
-        self.chat_history_path = chat_history_path
+        if self.user_id:
+            self.chat_history_path = user_scoped_chat_history_path(
+                chat_history_path,
+                users_base_path,
+                self.user_id,
+            )
+            resolved_memory_base_path = user_scoped_memory_base_path(
+                memory_base_path,
+                users_base_path,
+                self.user_id,
+            )
+        else:
+            self.chat_history_path = chat_history_path
+            resolved_memory_base_path = memory_base_path
 
         # These are needed for consistency with older code.
         self.chat_keep_last_n = max(1, chat_keep_last_n)
@@ -58,26 +79,31 @@ class SimpleLLMAgent:
             ssl_context=build_ssl_context(),
         )
         self._token_service = TokenAccountingService(self._provider_service)
+        self._personalization_service = PersonalizationService(
+            users_base_path=users_base_path,
+            user_id=self.user_id,
+        )
 
         self._chat_history_service = ChatHistoryService(
-            chat_history_path=chat_history_path,
+            chat_history_path=self.chat_history_path,
             chat_keep_last_n=self.chat_keep_last_n,
             chat_summary_batch_size=self.chat_summary_batch_size,
             summary_enabled=chat_summary_enabled,
             provider_service=self._provider_service,
         )
         self._memory_service = MemoryService(
-            memory_base_path=memory_base_path,
+            memory_base_path=resolved_memory_base_path,
             chat_keep_last_n=self.chat_keep_last_n,
         )
         self._context_service = ChatContextService(
             chat_keep_last_n=self.chat_keep_last_n,
             chat_history_service=self._chat_history_service,
             memory_service=self._memory_service,
+            personalization_service=self._personalization_service,
         )
 
     @classmethod
-    def from_env(cls) -> "SimpleLLMAgent":
+    def from_env(cls, user_id: Optional[str] = None) -> "SimpleLLMAgent":
         provider, api_url, api_key, model_candidates = get_provider_config()
         return cls(
             provider=provider,
@@ -89,6 +115,8 @@ class SimpleLLMAgent:
             chat_summary_batch_size=positive_int_from_env("LLM_CHAT_SUMMARY_BATCH_SIZE", 10),
             chat_summary_enabled=False,
             memory_base_path=memory_base_path_from_env(),
+            users_base_path=users_base_path_from_env(),
+            user_id=user_id,
         )
 
     def set_summary_mode(self, enabled: bool) -> None:
@@ -126,6 +154,22 @@ class SimpleLLMAgent:
     def memory_snapshot(self) -> dict:
         return self._memory_service.memory_snapshot()
 
+    # ---- Personalization (CLI --user-id / @personalization) ----
+    def ensure_user_profile(self) -> bool:
+        return self._personalization_service.ensure_user_exists()
+
+    def user_profile_needs_interview(self) -> bool:
+        return self._personalization_service.needs_interview()
+
+    def save_user_profile_interview(self, answers: dict[str, str]) -> None:
+        self._personalization_service.save_interview_answers(answers)
+
+    def update_personalization(self, key: str, value: str) -> None:
+        self._personalization_service.update_profile_entries({key: value})
+
+    def personalization_snapshot(self) -> dict:
+        return self._personalization_service.snapshot()
+
     # ---- Branching commands (CLI @checkpoint/@fork/@switch) ----
     def branch_checkpoint(self) -> None:
         if self.context_strategy != "branching":
@@ -157,7 +201,10 @@ class SimpleLLMAgent:
     # ---- LLM calls ----
     def ask(self, prompt: str, options: AgentRequestOptions) -> AgentResponse:
         messages: list[dict[str, str]] = []
-        system_msg = constraint_system_message(options)
+        system_msg = merge_system_messages(
+            constraint_system_message(options),
+            self._personalization_service.system_message(),
+        )
         if system_msg:
             messages.append(system_msg)
         messages.append({"role": "user", "content": prompt})

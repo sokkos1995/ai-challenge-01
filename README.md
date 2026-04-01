@@ -9,6 +9,7 @@
 ## Файл проекта
 
 - `app/agent.py` — сущность агента (`SimpleLLMAgent`): инкапсулирует логику запроса/ответа к LLM API.
+- `app/services/` — сервисный слой: работа с провайдером, памятью, историей чата, персонализацией и token accounting.
 - `app/cli_utils.py` — CLI-утилиты (`parse_args`, `resolve_prompt`, `print_verbose_stats`).
 - `app/cli.py` — основной CLI-поток (single prompt + chat), использует модули пакета `app`.
 - `llm_cli.py` — тонкая точка входа, делегирует запуск в `app.cli.main`.
@@ -97,6 +98,29 @@ python3 llm_cli.py --chat --summary
 - `branching` — поддерживать 2 ветки от checkpoint (см. команды ниже);
 - `memory` — явные memory layers: `short-term`, `working`, `long-term`.
 
+Персонализация пользователя включается через `--user-id`:
+
+```bash
+python3 llm_cli.py --chat --context-strategy memory --user-id 123
+```
+
+Что происходит:
+- для нового `user_id` создается профиль в скрытой папке `.llm_users/`;
+- при первом запуске проводится мини-интервью (`role`, `stack`, стиль/детальность ответа, формат, ограничения);
+- профиль автоматически подмешивается в `system prompt` каждого запроса;
+- chat history и memory layers становятся раздельными для каждого `user_id`.
+
+Поддерживаемые поля профиля:
+- `role` — кто пользователь и в каком контексте работает;
+- `stack` — основной стек/инструменты;
+- `answer_detail` — предпочитаемая детализация (`brief` / `detailed`);
+- `answer_format` — предпочитаемый формат ответа (`bullets`, `step-by-step`, `text`, `json`, ...);
+- `constraints` — дополнительные ограничения.
+
+Важно:
+- персонализация реализована в Python CLI (`python3 llm_cli.py`);
+- `llm_request.sh` остается stateless-скриптом без `--user-id` и пользовательского профиля.
+
 Команды внутри `branching`:
 - `@checkpoint` — сохранить checkpoint;
 - `@fork` — создать 2 ветки (`1` и `2`) и активировать ветку `1`;
@@ -112,10 +136,33 @@ python3 llm_cli.py --chat --summary
 - `@mem long knowledge <key>=<value>` — сохранить знание в долговременную память;
 - `@mem long decision <text>` — добавить решение в долговременную память.
 
+Команды для персонализации (доступны при запуске с `--user-id`):
+- `@personalization show` — показать текущий профиль пользователя;
+- `@personalization interview` — заново пройти мини-интервью;
+- `@personalization <key>=<value>` — дополнить или обновить персонализацию вручную.
+
+Пример:
+
+```bash
+python3 llm_cli.py --chat --context-strategy memory --user-id 123
+```
+
+```text
+@personalization show
+@personalization constraints=Не предлагай JavaScript
+@personalization answer_format=step-by-step
+```
+
 Настройки через env:
 - `LLM_CHAT_KEEP_LAST_N` — размер окна последних сообщений (по умолчанию `10`);
 - `LLM_CHAT_SUMMARY_BATCH_SIZE` — размер батча старых сообщений для очередного обновления summary (по умолчанию `10`);
 - `LLM_MEMORY_BASE_PATH` — базовый путь для memory layers (по умолчанию `.llm_memory`; создаются файлы `.short.db`, `.work.db`, `.long.db`).
+- `LLM_USERS_BASE_PATH` — корень для пользовательских профилей и per-user сессий (по умолчанию `.llm_users`);
+- `LLM_USER_ID` — user id по умолчанию, если не хочется передавать `--user-id` каждый раз.
+
+Что хранится на диске при персонализации:
+- `.llm_users/users.db` — профили пользователей и флаг завершенности интервью;
+- `.llm_users/sessions/<user_id>/...` — отдельные chat/memory SQLite-файлы для конкретного пользователя.
 
 Команды внутри чата:
 - `@tokens` / `@tokens off` — включить/выключить вывод токенов;
