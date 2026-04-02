@@ -131,10 +131,25 @@ python3 llm_cli.py --chat --context-strategy memory --user-id 123
 - `@mem show` — показать снимок всех слоев памяти;
 - `@mem clear short|work|long|all` — очистить выбранный слой;
 - `@mem short note <text>` — явно сохранить заметку в краткосрочную память;
-- `@mem work <field>=<value>` — обновить рабочую память (`task`, `state`, `step`, `total`, `plan+`, `done+`, `note+`);
+- `@mem work <field>=<value>` — обновить рабочую память (`task`, `state`, `paused`, `step`, `total`, `expected_action`, `plan+`, `done+`, `note+`);
 - `@mem long profile <key>=<value>` — сохранить профиль пользователя в долговременную память;
 - `@mem long knowledge <key>=<value>` — сохранить знание в долговременную память;
 - `@mem long decision <text>` — добавить решение в долговременную память.
+
+Task state machine в рабочей памяти:
+- стадии: `PLANNING`, `EXECUTION`, `VALIDATION`, `DONE`;
+- разрешенные переходы: `PLANNING -> EXECUTION`, `EXECUTION -> VALIDATION|PLANNING`, `VALIDATION -> DONE|EXECUTION`, `DONE` — терминальное состояние;
+- пауза доступна на любой стадии через отдельный флаг `paused`;
+- состояние задачи, план, ожидаемое действие и заметки автоматически подмешиваются в system prompt через prompt builder, поэтому сессию можно остановить и продолжить без повторного объяснения контекста.
+
+Команды для task state machine:
+- `@task show` — показать текущее состояние задачи;
+- `@task pause` — поставить задачу на паузу;
+- `@task resume` — снять задачу с паузы;
+- `@task plan+ <text>` — добавить пункт в план;
+- `@task done+ <text>` — добавить выполненный пункт;
+- `@task expected <text>` — обновить ожидаемое следующее действие;
+- `@task state <PLANNING|EXECUTION|VALIDATION|DONE>` — перевести задачу в следующий допустимый stage.
 
 Команды для персонализации (доступны при запуске с `--user-id`):
 - `@personalization show` — показать текущий профиль пользователя;

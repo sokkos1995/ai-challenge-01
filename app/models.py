@@ -56,9 +56,11 @@ class BranchState:
 @dataclass
 class TaskState:
     task: str = ""
-    state: str = "new"
+    state: str = "PLANNING"
+    paused: bool = False
     step: int = 0
     total: int = 0
+    expected_action: str = ""
     plan: list[str] = field(default_factory=list)
     done: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)

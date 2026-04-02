@@ -1,4 +1,3 @@
-import json
 from typing import Optional
 
 from app.messages import facts_system_message
@@ -9,6 +8,7 @@ from app.models import (
     ShortTermMemory,
     WorkingMemory,
 )
+from app.prompt_builder import build_memory_prompt
 from app.storage import (
     load_long_term_memory,
     load_short_term_memory,
@@ -17,6 +17,7 @@ from app.storage import (
     save_short_term_memory,
     save_working_memory,
 )
+from app.task_state_machine import allowed_task_stage_transitions, normalize_task_stage, validate_task_stage_transition
 
 
 class MemoryService:
@@ -49,6 +50,15 @@ class MemoryService:
         save_short_term_memory(self._memory_base_path, self._short_memory)
         save_working_memory(self._memory_base_path, self._working_memory)
         save_long_term_memory(self._memory_base_path, self._long_memory)
+
+    @staticmethod
+    def _parse_bool(value: str) -> bool:
+        normalized = value.strip().lower()
+        if normalized in {"1", "true", "yes", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "off"}:
+            return False
+        raise ValueError("Boolean value expected. Use true/false.")
 
     @staticmethod
     def _extract_sticky_fact_update(user_message: str) -> Optional[tuple[str, str]]:
@@ -128,33 +138,14 @@ class MemoryService:
         )
 
     def _memory_layers_system_message(self) -> dict[str, str]:
+        self._ensure_memory_loaded()
         task = self._working_memory.current_task
-        payload = {
-            "short_term_notes": self._short_memory.notes,
-            "working_task": {
-                "task": task.task,
-                "state": task.state,
-                "step": task.step,
-                "total": task.total,
-                "plan": task.plan,
-                "done": task.done,
-                "notes": task.notes,
-            },
-            "long_term_profile": self._long_memory.profile,
-            "long_term_decisions": self._long_memory.decisions,
-            "long_term_knowledge": self._long_memory.knowledge,
-        }
         return {
             "role": "system",
-            "content": (
-                "Memory layers for this assistant (explicitly separated):\n"
-                f"{json.dumps(payload, ensure_ascii=True)}\n\n"
-                "Use memory as supporting context. If memory conflicts with new user input, ask clarification."
-            ),
+            "content": build_memory_prompt(self._short_memory, task, self._long_memory),
         }
 
     def memory_layers_system_message(self) -> dict[str, str]:
-        self._ensure_memory_loaded()
         return self._memory_layers_system_message()
 
     def add_short_term_note(self, note: str) -> None:
@@ -165,29 +156,58 @@ class MemoryService:
         self._short_memory.notes.append(clean)
         self._save_all_memory_layers()
 
+    def transition_task_state(self, new_state: str) -> str:
+        self._ensure_memory_loaded()
+        task = self._working_memory.current_task
+        task.state = validate_task_stage_transition(task.state, new_state)
+        if task.state == "DONE":
+            task.paused = False
+            if not task.expected_action.strip():
+                task.expected_action = "Summarize the completed result."
+        self._save_all_memory_layers()
+        return task.state
+
+    def pause_current_task(self) -> None:
+        self._ensure_memory_loaded()
+        self._working_memory.current_task.paused = True
+        self._save_all_memory_layers()
+
+    def resume_current_task(self) -> None:
+        self._ensure_memory_loaded()
+        self._working_memory.current_task.paused = False
+        self._save_all_memory_layers()
+
     def update_working_task_field(self, field_name: str, value: str) -> None:
         self._ensure_memory_loaded()
         task = self._working_memory.current_task
+        normalized_field = field_name.strip().lower()
         clean = value.strip()
-        if field_name == "task":
+        if normalized_field == "task":
             task.task = clean
-        elif field_name == "state":
-            task.state = clean or "new"
-        elif field_name == "step":
+        elif normalized_field == "state":
+            task.state = validate_task_stage_transition(task.state, clean or "PLANNING")
+        elif normalized_field == "paused":
+            task.paused = self._parse_bool(clean)
+        elif normalized_field == "step":
             task.step = int(clean) if clean else 0
-        elif field_name == "total":
+        elif normalized_field == "total":
             task.total = int(clean) if clean else 0
-        elif field_name == "plan+":
+        elif normalized_field == "expected_action":
+            task.expected_action = clean
+        elif normalized_field == "plan+":
             if clean:
                 task.plan.append(clean)
-        elif field_name == "done+":
+        elif normalized_field == "done+":
             if clean:
                 task.done.append(clean)
-        elif field_name == "note+":
+        elif normalized_field == "note+":
             if clean:
                 task.notes.append(clean)
         else:
-            raise ValueError("Unknown work field. Use: task, state, step, total, plan+, done+, note+.")
+            raise ValueError(
+                "Unknown work field. Use: task, state, paused, step, total, expected_action, plan+, done+, note+."
+            )
+        task.state = normalize_task_stage(task.state)
         self._save_all_memory_layers()
 
     def update_long_term_memory(self, bucket: str, key: str, value: str) -> None:
@@ -242,8 +262,11 @@ class MemoryService:
             "working": {
                 "task": task.task,
                 "state": task.state,
+                "paused": task.paused,
                 "step": task.step,
                 "total": task.total,
+                "expected_action": task.expected_action,
+                "allowed_transitions": list(allowed_task_stage_transitions(task.state)),
                 "plan": list(task.plan),
                 "done": list(task.done),
                 "notes": list(task.notes),

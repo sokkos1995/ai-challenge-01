@@ -2,6 +2,7 @@ import os
 import sqlite3
 
 from app.models import LongTermMemory, ShortTermMemory, TaskState, WorkingMemory
+from app.task_state_machine import normalize_task_stage
 
 
 def _ensure_db_parent(path: str) -> None:
@@ -119,8 +120,10 @@ def _init_work_memory_db(conn: sqlite3.Connection) -> None:
             id INTEGER PRIMARY KEY CHECK (id = 1),
             task TEXT NOT NULL,
             state TEXT NOT NULL,
+            paused INTEGER NOT NULL DEFAULT 0,
             step INTEGER NOT NULL,
-            total INTEGER NOT NULL
+            total INTEGER NOT NULL,
+            expected_action TEXT NOT NULL DEFAULT ''
         )
         """
     )
@@ -148,6 +151,22 @@ def _init_work_memory_db(conn: sqlite3.Connection) -> None:
         )
         """
     )
+
+
+def _table_has_column(conn: sqlite3.Connection, table_name: str, column_name: str) -> bool:
+    rows = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
+    return any(str(row[1]) == column_name for row in rows)
+
+
+def _migrate_work_memory_db(conn: sqlite3.Connection) -> None:
+    if not _table_has_column(conn, "work_task_state", "paused"):
+        conn.execute(
+            "ALTER TABLE work_task_state ADD COLUMN paused INTEGER NOT NULL DEFAULT 0"
+        )
+    if not _table_has_column(conn, "work_task_state", "expected_action"):
+        conn.execute(
+            "ALTER TABLE work_task_state ADD COLUMN expected_action TEXT NOT NULL DEFAULT ''"
+        )
 
 
 def _init_long_memory_db(conn: sqlite3.Connection) -> None:
@@ -247,7 +266,14 @@ def load_working_memory(base_path: str) -> WorkingMemory:
     conn = sqlite3.connect(path)
     try:
         _init_work_memory_db(conn)
-        row = conn.execute("SELECT task, state, step, total FROM work_task_state WHERE id = 1").fetchone()
+        _migrate_work_memory_db(conn)
+        row = conn.execute(
+            """
+            SELECT task, state, paused, step, total, expected_action
+            FROM work_task_state
+            WHERE id = 1
+            """
+        ).fetchone()
         plan_rows = conn.execute("SELECT item FROM work_plan ORDER BY id ASC").fetchall()
         done_rows = conn.execute("SELECT item FROM work_done ORDER BY id ASC").fetchall()
         notes_rows = conn.execute("SELECT note FROM work_notes ORDER BY id ASC").fetchall()
@@ -259,9 +285,11 @@ def load_working_memory(base_path: str) -> WorkingMemory:
     else:
         task_state = TaskState(
             task=str(row[0]),
-            state=str(row[1]),
-            step=int(row[2]),
-            total=int(row[3]),
+            state=normalize_task_stage(str(row[1])),
+            paused=bool(int(row[2])),
+            step=int(row[3]),
+            total=int(row[4]),
+            expected_action=str(row[5]),
             plan=[str(r[0]) for r in plan_rows],
             done=[str(r[0]) for r in done_rows],
             notes=[str(r[0]) for r in notes_rows],
@@ -275,19 +303,29 @@ def save_working_memory(base_path: str, state: WorkingMemory) -> None:
     conn = sqlite3.connect(path)
     try:
         _init_work_memory_db(conn)
+        _migrate_work_memory_db(conn)
         task = state.current_task
         conn.execute("BEGIN IMMEDIATE")
         conn.execute(
             """
-            INSERT INTO work_task_state (id, task, state, step, total)
-            VALUES (1, ?, ?, ?, ?)
+            INSERT INTO work_task_state (id, task, state, paused, step, total, expected_action)
+            VALUES (1, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 task=excluded.task,
                 state=excluded.state,
+                paused=excluded.paused,
                 step=excluded.step,
-                total=excluded.total
+                total=excluded.total,
+                expected_action=excluded.expected_action
             """,
-            (task.task, task.state, task.step, task.total),
+            (
+                task.task,
+                normalize_task_stage(task.state),
+                1 if task.paused else 0,
+                task.step,
+                task.total,
+                task.expected_action,
+            ),
         )
         conn.execute("DELETE FROM work_plan")
         conn.executemany("INSERT INTO work_plan (item) VALUES (?)", [(item,) for item in task.plan])

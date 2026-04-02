@@ -6,6 +6,12 @@ from app.agent import AgentRequestOptions, SimpleLLMAgent, load_env_file
 from app.cli_utils import parse_args, print_token_stats, print_verbose_stats, resolve_prompt
 
 
+_TASK_COMMAND_USAGE = (
+    "agent> Usage: @task show | pause | resume | plan+ <text> | done+ <text> | "
+    "expected <text> | state <PLANNING|EXECUTION|VALIDATION|DONE>"
+)
+
+
 def _ask_interview_value(prompt: str, default: str = "") -> str:
     suffix = f" [{default}]" if default else ""
     return input(f"{prompt}{suffix}: ").strip() or default
@@ -74,6 +80,63 @@ def _handle_personalization_command(user_input: str, agent: SimpleLLMAgent) -> b
     return True
 
 
+def _task_command_argument(payload: str, prefix: str, usage: str) -> str:
+    value = payload[len(prefix) :].strip()
+    if not value:
+        raise ValueError(usage)
+    return value
+
+
+def _handle_task_command(user_input: str, agent: SimpleLLMAgent) -> bool:
+    if not user_input.lower().startswith("@task"):
+        return False
+
+    payload = user_input[len("@task") :].strip()
+    if not payload or payload.lower() == "show":
+        snapshot = agent.memory_snapshot().get("working", {})
+        print(f"agent> task:\n{json.dumps(snapshot, ensure_ascii=False, indent=2)}")
+        return True
+
+    lower_payload = payload.lower()
+    if lower_payload == "pause":
+        agent.pause_current_task()
+        print("agent> task paused.")
+        return True
+    if lower_payload == "resume":
+        agent.resume_current_task()
+        print("agent> task resumed.")
+        return True
+
+    update_commands = {
+        "plan+ ": ("plan+", "agent> Usage: @task plan+ <text>", "agent> task plan updated."),
+        "done+ ": ("done+", "agent> Usage: @task done+ <text>", "agent> task done updated."),
+        "expected ": (
+            "expected_action",
+            "agent> Usage: @task expected <text>",
+            "agent> task expected action updated.",
+        ),
+    }
+    for prefix, (field_name, usage, success_message) in update_commands.items():
+        if lower_payload.startswith(prefix):
+            field_value = _task_command_argument(payload, prefix, usage)
+            agent.update_working_task_field(field_name, field_value)
+            print(success_message)
+            return True
+
+    if lower_payload.startswith("state "):
+        next_state = _task_command_argument(
+            payload,
+            "state ",
+            "agent> Usage: @task state <PLANNING|EXECUTION|VALIDATION|DONE>",
+        )
+        applied_state = agent.transition_task_state(next_state)
+        print(f"agent> task state updated: {applied_state}")
+        return True
+
+    print(_TASK_COMMAND_USAGE)
+    return True
+
+
 def main() -> None:
     load_env_file()
     args = parse_args()
@@ -133,6 +196,13 @@ def main() -> None:
                     continue
 
                 if _handle_personalization_command(user_input, agent):
+                    continue
+
+                try:
+                    if _handle_task_command(user_input, agent):
+                        continue
+                except Exception as exc:
+                    print(f"agent> task command error: {exc}")
                     continue
 
                 if user_input.lower() == "@summary":

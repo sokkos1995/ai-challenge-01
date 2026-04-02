@@ -142,6 +142,15 @@ class SimpleLLMAgent:
     def update_working_task_field(self, field_name: str, value: str) -> None:
         self._memory_service.update_working_task_field(field_name, value)
 
+    def transition_task_state(self, new_state: str) -> str:
+        return self._memory_service.transition_task_state(new_state)
+
+    def pause_current_task(self) -> None:
+        self._memory_service.pause_current_task()
+
+    def resume_current_task(self) -> None:
+        self._memory_service.resume_current_task()
+
     def update_long_term_memory(self, bucket: str, key: str, value: str) -> None:
         self._memory_service.update_long_term_memory(bucket, key, value)
 
