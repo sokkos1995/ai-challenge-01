@@ -194,6 +194,14 @@ def _init_long_memory_db(conn: sqlite3.Connection) -> None:
         )
         """
     )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS long_invariants (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            invariant_text TEXT NOT NULL
+        )
+        """
+    )
 
 
 def _init_user_profile_db(conn: sqlite3.Connection) -> None:
@@ -351,12 +359,16 @@ def load_long_term_memory(base_path: str) -> LongTermMemory:
         profile_rows = conn.execute("SELECT key, value FROM long_profile ORDER BY key ASC").fetchall()
         decision_rows = conn.execute("SELECT decision FROM long_decisions ORDER BY id ASC").fetchall()
         knowledge_rows = conn.execute("SELECT key, value FROM long_knowledge ORDER BY key ASC").fetchall()
+        invariant_rows = conn.execute(
+            "SELECT invariant_text FROM long_invariants ORDER BY id ASC"
+        ).fetchall()
     finally:
         conn.close()
     return LongTermMemory(
         profile={str(k): str(v) for k, v in profile_rows},
         decisions=[str(r[0]) for r in decision_rows],
         knowledge={str(k): str(v) for k, v in knowledge_rows},
+        invariants=[str(r[0]) for r in invariant_rows],
     )
 
 
@@ -381,6 +393,11 @@ def save_long_term_memory(base_path: str, state: LongTermMemory) -> None:
         conn.executemany(
             "INSERT INTO long_knowledge (key, value) VALUES (?, ?)",
             [(k, v) for k, v in state.knowledge.items()],
+        )
+        conn.execute("DELETE FROM long_invariants")
+        conn.executemany(
+            "INSERT INTO long_invariants (invariant_text) VALUES (?)",
+            [(item,) for item in state.invariants],
         )
         conn.commit()
     except Exception:

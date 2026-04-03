@@ -10,6 +10,7 @@ _TASK_COMMAND_USAGE = (
     "agent> Usage: @task show | pause | resume | plan+ <text> | done+ <text> | "
     "expected <text> | state <PLANNING|EXECUTION|VALIDATION|DONE>"
 )
+_INVARIANT_COMMAND_USAGE = "agent> Usage: @invariant show | add <text> | clear"
 
 
 def _ask_interview_value(prompt: str, default: str = "") -> str:
@@ -137,6 +138,35 @@ def _handle_task_command(user_input: str, agent: SimpleLLMAgent) -> bool:
     return True
 
 
+def _handle_invariant_command(user_input: str, agent: SimpleLLMAgent) -> bool:
+    if not user_input.lower().startswith("@invariant"):
+        return False
+
+    payload = user_input[len("@invariant") :].strip()
+    if not payload or payload.lower() == "show":
+        snapshot = agent.memory_snapshot()
+        invariants = snapshot.get("long_term", {}).get("invariants", [])
+        print(f"agent> invariants:\n{json.dumps(invariants, ensure_ascii=False, indent=2)}")
+        return True
+
+    lower_payload = payload.lower()
+    if lower_payload == "clear":
+        agent.clear_invariants()
+        print("agent> invariants cleared.")
+        return True
+    if lower_payload.startswith("add "):
+        invariant = payload[4:].strip()
+        if not invariant:
+            print(_INVARIANT_COMMAND_USAGE)
+            return True
+        agent.add_invariant(invariant)
+        print("agent> invariant saved.")
+        return True
+
+    print(_INVARIANT_COMMAND_USAGE)
+    return True
+
+
 def main() -> None:
     load_env_file()
     args = parse_args()
@@ -196,6 +226,13 @@ def main() -> None:
                     continue
 
                 if _handle_personalization_command(user_input, agent):
+                    continue
+
+                try:
+                    if _handle_invariant_command(user_input, agent):
+                        continue
+                except Exception as exc:
+                    print(f"agent> invariant command error: {exc}")
                     continue
 
                 try:

@@ -66,6 +66,8 @@ def build_memory_prompt(
             "\n".join(
                 [
                     "Supporting memory:",
+                    "Long-term invariants:",
+                    _bullet_list(long_memory.invariants, "no invariants"),
                     "Short-term notes:",
                     _bullet_list(short_memory.notes, "no short-term notes"),
                     "Long-term decisions:",
@@ -76,6 +78,7 @@ def build_memory_prompt(
             ),
             (
                 "Use this memory as the source of truth for continuing the task. "
+                "Respect the long-term invariants above as non-negotiable constraints. "
                 "When the user asks to move to another stage, respect the allowed transitions above. "
                 "If a requested transition is invalid, explain the valid next stages."
             ),

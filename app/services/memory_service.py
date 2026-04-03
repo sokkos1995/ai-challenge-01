@@ -1,6 +1,6 @@
 from typing import Optional
 
-from app.messages import facts_system_message
+from app.messages import facts_system_message, invariants_system_message
 from app.models import (
     BranchState,
     FactsState,
@@ -148,6 +148,14 @@ class MemoryService:
     def memory_layers_system_message(self) -> dict[str, str]:
         return self._memory_layers_system_message()
 
+    def invariants_system_message(self) -> Optional[dict[str, str]]:
+        self._ensure_memory_loaded()
+        return invariants_system_message(self._long_memory.invariants)
+
+    def get_invariants(self) -> list[str]:
+        self._ensure_memory_loaded()
+        return list(self._long_memory.invariants)
+
     def add_short_term_note(self, note: str) -> None:
         self._ensure_memory_loaded()
         clean = note.strip()
@@ -234,6 +242,21 @@ class MemoryService:
         self._long_memory.decisions.append(clean)
         self._save_all_memory_layers()
 
+    def add_invariant(self, invariant: str) -> None:
+        self._ensure_memory_loaded()
+        clean = invariant.strip()
+        if not clean:
+            return
+        if clean in self._long_memory.invariants:
+            return
+        self._long_memory.invariants.append(clean)
+        self._save_all_memory_layers()
+
+    def clear_invariants(self) -> None:
+        self._ensure_memory_loaded()
+        self._long_memory.invariants = []
+        self._save_all_memory_layers()
+
     def clear_memory_layer(self, layer: str) -> None:
         self._ensure_memory_loaded()
         normalized = layer.strip().lower()
@@ -275,6 +298,7 @@ class MemoryService:
                 "profile": dict(self._long_memory.profile),
                 "decisions": list(self._long_memory.decisions),
                 "knowledge": dict(self._long_memory.knowledge),
+                "invariants": list(self._long_memory.invariants),
             },
         }
 

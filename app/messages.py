@@ -83,6 +83,25 @@ def facts_system_message(facts: dict[str, str]) -> dict[str, str]:
     return {"role": "system", "content": content}
 
 
+def invariants_system_message(invariants: list[str]) -> Optional[dict[str, str]]:
+    clean_items = [item.strip() for item in invariants if item.strip()]
+    if not clean_items:
+        return None
+
+    content = "\n".join(
+        [
+            "Non-negotiable invariants:",
+            *[f"- {item}" for item in clean_items],
+            "",
+            "Treat these invariants as a source of truth separate from the dialog.",
+            "Before answering, explicitly check whether the user's request conflicts with any invariant.",
+            "Never propose, endorse, or elaborate a solution that would violate an invariant.",
+            "If there is a conflict, refuse briefly, name the conflicting invariant, explain why, and offer a compliant alternative.",
+        ]
+    )
+    return {"role": "system", "content": content}
+
+
 def personalization_system_message(user_id: str, profile: dict[str, str]) -> dict[str, str]:
     profile_json = json.dumps(profile, ensure_ascii=True)
     content = (

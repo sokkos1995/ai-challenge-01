@@ -82,3 +82,4 @@ class LongTermMemory:
     profile: dict[str, str] = field(default_factory=dict)
     decisions: list[str] = field(default_factory=list)
     knowledge: dict[str, str] = field(default_factory=dict)
+    invariants: list[str] = field(default_factory=list)

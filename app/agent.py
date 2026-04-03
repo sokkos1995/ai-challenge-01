@@ -16,6 +16,7 @@ from app.models import AgentRequestOptions, AgentResponse, AgentTokenStats
 from app.response_parser import parse_agent_response
 from app.services.chat_context_service import ChatContextService
 from app.services.chat_history_service import ChatHistoryService
+from app.services.invariant_guard_service import InvariantGuardService
 from app.services.memory_service import MemoryService
 from app.services.personalization_service import PersonalizationService
 from app.services.provider_service import ProviderService
@@ -79,6 +80,7 @@ class SimpleLLMAgent:
             ssl_context=build_ssl_context(),
         )
         self._token_service = TokenAccountingService(self._provider_service)
+        self._invariant_guard_service = InvariantGuardService(self._provider_service, provider)
         self._personalization_service = PersonalizationService(
             users_base_path=users_base_path,
             user_id=self.user_id,
@@ -157,6 +159,12 @@ class SimpleLLMAgent:
     def add_long_term_decision(self, decision: str) -> None:
         self._memory_service.add_long_term_decision(decision)
 
+    def add_invariant(self, invariant: str) -> None:
+        self._memory_service.add_invariant(invariant)
+
+    def clear_invariants(self) -> None:
+        self._memory_service.clear_invariants()
+
     def clear_memory_layer(self, layer: str) -> None:
         self._memory_service.clear_memory_layer(layer)
 
@@ -209,10 +217,15 @@ class SimpleLLMAgent:
 
     # ---- LLM calls ----
     def ask(self, prompt: str, options: AgentRequestOptions) -> AgentResponse:
+        conflict = self._invariant_guard_service.check_request(prompt, self._memory_service.get_invariants())
+        if conflict is not None:
+            return self._invariant_guard_service.build_refusal_response(conflict)
+
         messages: list[dict[str, str]] = []
         system_msg = merge_system_messages(
             constraint_system_message(options),
             self._personalization_service.system_message(),
+            self._memory_service.invariants_system_message(),
         )
         if system_msg:
             messages.append(system_msg)
@@ -234,6 +247,14 @@ class SimpleLLMAgent:
 
     def ask_chat(self, prompt: str, options: AgentRequestOptions) -> AgentResponse:
         strategy = self.context_strategy
+        conflict = self._invariant_guard_service.check_request(prompt, self._memory_service.get_invariants())
+        if conflict is not None:
+            response = self._invariant_guard_service.build_refusal_response(conflict)
+            user_msg: dict[str, str] = {"role": "user", "content": prompt}
+            assistant_msg: dict[str, str] = {"role": "assistant", "content": response.answer}
+            self._context_service.apply_after_turn(strategy, user_msg, assistant_msg, options)
+            return response
+
         payload = self._context_service.build(strategy, prompt, options)
 
         data, tried_model, elapsed = self._provider_service.complete(payload.payload_messages, options)
