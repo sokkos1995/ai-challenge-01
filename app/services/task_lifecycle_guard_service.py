@@ -7,6 +7,7 @@ from app.task_state_machine import (
     TASK_PLAN_STATUS_APPROVED,
     TASK_STAGE_DONE,
     TASK_STAGE_EXECUTION,
+    TASK_STAGE_REJECTED,
     TASK_STAGE_VALIDATION,
     TASK_VALIDATION_STATUS_PASSED,
 )
@@ -20,6 +21,7 @@ class TaskLifecycleConflict:
 
 
 class TaskLifecycleGuardService:
+    LIFECYCLE_REFUSAL_PREFIX = "Не могу выполнить этот шаг: он нарушает жизненный цикл задачи."
     _IMPLEMENTATION_PATTERNS = (
         r"\bimplement\b",
         r"\bimplementation\b",
@@ -69,7 +71,7 @@ class TaskLifecycleGuardService:
         return any(re.search(pattern, text, flags=re.IGNORECASE) for pattern in patterns)
 
     @classmethod
-    def _classify_request(cls, user_request: str) -> Optional[str]:
+    def classify_request(cls, user_request: str) -> Optional[str]:
         if cls._has_signal(user_request, cls._FINALIZATION_PATTERNS):
             return "finalize"
         if cls._has_signal(user_request, cls._VALIDATION_PATTERNS):
@@ -77,6 +79,10 @@ class TaskLifecycleGuardService:
         if cls._has_signal(user_request, cls._IMPLEMENTATION_PATTERNS):
             return "implement"
         return None
+
+    @classmethod
+    def is_lifecycle_refusal_message(cls, assistant_message: str) -> bool:
+        return assistant_message.strip().startswith(cls.LIFECYCLE_REFUSAL_PREFIX)
 
     @staticmethod
     def _is_task_tracked(task: TaskState) -> bool:
@@ -92,7 +98,7 @@ class TaskLifecycleGuardService:
         if not self._is_task_tracked(task):
             return None
 
-        requested_action = self._classify_request(user_request)
+        requested_action = self.classify_request(user_request)
         if requested_action is None:
             return None
 
@@ -131,7 +137,7 @@ class TaskLifecycleGuardService:
             )
 
         if requested_action == "finalize":
-            if task.state != TASK_STAGE_DONE:
+            if task.state not in {TASK_STAGE_DONE, TASK_STAGE_REJECTED}:
                 if task.state == TASK_STAGE_VALIDATION and task.validation_status == TASK_VALIDATION_STATUS_PASSED:
                     safe_alternative = "Сначала зафиксируйте переход VALIDATION -> DONE, затем делайте финальный ответ."
                 else:
@@ -148,6 +154,7 @@ class TaskLifecycleGuardService:
         answer = "\n".join(
             [
                 "Не могу выполнить этот шаг: он нарушает жизненный цикл задачи.",
+                # Keep the refusal prefix stable so short-term memory can filter stale refusal loops.
                 conflict.explanation,
                 f"Следующий корректный шаг: {conflict.safe_alternative}",
             ]

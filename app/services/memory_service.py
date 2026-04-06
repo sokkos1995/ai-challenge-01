@@ -10,6 +10,7 @@ from app.models import (
     WorkingMemory,
 )
 from app.prompt_builder import build_memory_prompt
+from app.services.task_lifecycle_guard_service import TaskLifecycleGuardService
 from app.storage import (
     load_long_term_memory,
     load_short_term_memory,
@@ -21,6 +22,7 @@ from app.storage import (
 from app.task_state_machine import (
     TASK_PLAN_STATUS_APPROVED,
     TASK_PLAN_STATUS_DRAFT,
+    TASK_STAGE_REJECTED,
     TASK_VALIDATION_STATUS_PENDING,
     allowed_task_stage_transitions,
     normalize_plan_status,
@@ -179,6 +181,10 @@ class MemoryService:
             task.paused = False
             if not task.expected_action.strip():
                 task.expected_action = "Summarize the completed result."
+        if task.state == TASK_STAGE_REJECTED:
+            task.paused = False
+            if not task.expected_action.strip():
+                task.expected_action = "Summarize that the task was cancelled."
 
     def add_short_term_note(self, note: str) -> None:
         self._ensure_memory_loaded()
@@ -368,9 +374,29 @@ class MemoryService:
     def memory_context_messages(self) -> list[dict[str, str]]:
         return [self._memory_layers_system_message()]
 
+    def _memory_dialog_tail_for_user_prompt(self, user_prompt: str) -> list[dict[str, str]]:
+        self._ensure_memory_loaded()
+        task = self._working_memory.current_task
+        requested_action = TaskLifecycleGuardService.classify_request(user_prompt)
+        dialog_tail = list(self._short_memory.dialog_tail)
+
+        if task.state in {"DONE", TASK_STAGE_REJECTED} and requested_action == "finalize":
+            filtered_tail: list[dict[str, str]] = []
+            for msg in dialog_tail:
+                role = str(msg.get("role", "")).strip()
+                content = str(msg.get("content", ""))
+                if role == "assistant" and TaskLifecycleGuardService.is_lifecycle_refusal_message(content):
+                    continue
+                if role == "user" and TaskLifecycleGuardService.classify_request(content) == "finalize":
+                    continue
+                filtered_tail.append(msg)
+            dialog_tail = filtered_tail
+
+        return dialog_tail
+
     def memory_build_context_with_user(self, user_msg: dict[str, str]) -> list[dict[str, str]]:
         self._ensure_memory_loaded()
-        combined = list(self._short_memory.dialog_tail) + [user_msg]
+        combined = self._memory_dialog_tail_for_user_prompt(str(user_msg.get("content", ""))) + [user_msg]
         return combined[-self._chat_keep_last_n :]
 
     def memory_update_after_turn(self, user_msg: dict[str, str], assistant_msg: dict[str, str]) -> None:

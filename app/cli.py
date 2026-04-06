@@ -7,9 +7,9 @@ from app.cli_utils import parse_args, print_token_stats, print_verbose_stats, re
 
 
 _TASK_COMMAND_USAGE = (
-    "agent> Usage: @task show | pause | resume | approve-plan | reject-plan | "
+    "agent> Usage: @task show | pause | resume | reject | approve-plan | reject-plan | "
     "validate <pass|fail> | plan+ <text> | done+ <text> | expected <text> | "
-    "state <PLANNING|EXECUTION|VALIDATION|DONE>"
+    "state <PLANNING|EXECUTION|VALIDATION|DONE|REJECTED>"
 )
 _INVARIANT_COMMAND_USAGE = "agent> Usage: @invariant show | add <text> | clear"
 
@@ -108,6 +108,10 @@ def _handle_task_command(user_input: str, agent: SimpleLLMAgent) -> bool:
         agent.resume_current_task()
         print("agent> task resumed.")
         return True
+    if lower_payload == "reject":
+        applied_state = agent.transition_task_state("REJECTED")
+        print(f"agent> task state updated: {applied_state}")
+        return True
     if lower_payload == "approve-plan":
         agent.update_working_task_field("plan_status", "APPROVED")
         print("agent> task plan approved.")
@@ -145,7 +149,7 @@ def _handle_task_command(user_input: str, agent: SimpleLLMAgent) -> bool:
         next_state = _task_command_argument(
             payload,
             "state ",
-            "agent> Usage: @task state <PLANNING|EXECUTION|VALIDATION|DONE>",
+            "agent> Usage: @task state <PLANNING|EXECUTION|VALIDATION|DONE|REJECTED>",
         )
         applied_state = agent.transition_task_state(next_state)
         print(f"agent> task state updated: {applied_state}")

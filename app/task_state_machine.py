@@ -7,12 +7,14 @@ TASK_STAGE_PLANNING: Final[str] = "PLANNING"
 TASK_STAGE_EXECUTION: Final[str] = "EXECUTION"
 TASK_STAGE_VALIDATION: Final[str] = "VALIDATION"
 TASK_STAGE_DONE: Final[str] = "DONE"
+TASK_STAGE_REJECTED: Final[str] = "REJECTED"
 
 TASK_STAGES: Final[tuple[str, ...]] = (
     TASK_STAGE_PLANNING,
     TASK_STAGE_EXECUTION,
     TASK_STAGE_VALIDATION,
     TASK_STAGE_DONE,
+    TASK_STAGE_REJECTED,
 )
 
 TASK_PLAN_STATUS_DRAFT: Final[str] = "DRAFT"
@@ -32,10 +34,11 @@ TASK_VALIDATION_STATUSES: Final[tuple[str, ...]] = (
 )
 
 ALLOWED_TASK_STAGE_TRANSITIONS: Final[dict[str, tuple[str, ...]]] = {
-    TASK_STAGE_PLANNING: (TASK_STAGE_EXECUTION,),
-    TASK_STAGE_EXECUTION: (TASK_STAGE_VALIDATION, TASK_STAGE_PLANNING),
-    TASK_STAGE_VALIDATION: (TASK_STAGE_DONE, TASK_STAGE_EXECUTION),
-    TASK_STAGE_DONE: (),
+    TASK_STAGE_PLANNING: (TASK_STAGE_EXECUTION, TASK_STAGE_REJECTED),
+    TASK_STAGE_EXECUTION: (TASK_STAGE_VALIDATION, TASK_STAGE_PLANNING, TASK_STAGE_REJECTED),
+    TASK_STAGE_VALIDATION: (TASK_STAGE_DONE, TASK_STAGE_EXECUTION, TASK_STAGE_REJECTED),
+    TASK_STAGE_DONE: (TASK_STAGE_REJECTED,),
+    TASK_STAGE_REJECTED: (),
 }
 
 _LEGACY_TASK_STAGE_ALIASES: Final[dict[str, str]] = {
@@ -47,6 +50,10 @@ _LEGACY_TASK_STAGE_ALIASES: Final[dict[str, str]] = {
     "validate": TASK_STAGE_VALIDATION,
     "validation": TASK_STAGE_VALIDATION,
     "done": TASK_STAGE_DONE,
+    "rejected": TASK_STAGE_REJECTED,
+    "reject": TASK_STAGE_REJECTED,
+    "cancelled": TASK_STAGE_REJECTED,
+    "canceled": TASK_STAGE_REJECTED,
 }
 
 _LEGACY_PLAN_STATUS_ALIASES: Final[dict[str, str]] = {
@@ -112,7 +119,7 @@ def normalize_validation_status(value: str) -> str:
 
 def transition_readiness_error(task: TaskState, next_stage: str) -> Optional[str]:
     normalized_next = normalize_task_stage(next_stage)
-    if task.paused:
+    if task.paused and normalized_next != TASK_STAGE_REJECTED:
         return "Cannot change task stage while the task is paused. Resume it first."
 
     if task.state == TASK_STAGE_PLANNING and normalized_next == TASK_STAGE_EXECUTION:

@@ -21,6 +21,8 @@ def _current_stage_guidance(task: TaskState) -> str:
         return "Focus on implementing the approved plan and producing concrete artifacts."
     if task.state == "VALIDATION":
         return "Focus on tests, review, verification against the plan, and fixing found gaps."
+    if task.state == "REJECTED":
+        return "The task was cancelled. Summarize the cancellation state and avoid reopening work unless the user asks."
     return "The task is complete. Summarize the result and avoid reopening work unless the user asks."
 
 
@@ -41,10 +43,11 @@ def build_memory_prompt(
             "\n".join(
                 [
                     "Task state machine:",
-                    "- PLANNING -> EXECUTION",
-                    "- EXECUTION -> VALIDATION, PLANNING",
-                    "- VALIDATION -> DONE, EXECUTION",
-                    "- DONE -> terminal",
+                    "- PLANNING -> EXECUTION, REJECTED",
+                    "- EXECUTION -> VALIDATION, PLANNING, REJECTED",
+                    "- VALIDATION -> DONE, EXECUTION, REJECTED",
+                    "- DONE -> REJECTED",
+                    "- REJECTED -> terminal",
                     f"- Current stage: {task.state}",
                     f"- Paused: {'yes' if task.paused else 'no'}",
                     f"- Plan status: {plan_status}",
@@ -56,7 +59,7 @@ def build_memory_prompt(
                     "Strict lifecycle rules:",
                     "- Do not implement if the current stage is not EXECUTION.",
                     "- Do not implement if the plan status is not APPROVED.",
-                    "- Do not mark the task as final or complete unless validation status is PASSED and the stage becomes DONE.",
+                    "- Do not mark the task as final or complete unless validation status is PASSED and the stage becomes DONE, or the task is explicitly cancelled via REJECTED.",
                     "- If the user asks to skip a stage, explain the required next valid step instead of complying.",
                 ]
             ),

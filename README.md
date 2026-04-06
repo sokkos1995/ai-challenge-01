@@ -137,11 +137,12 @@ python3 llm_cli.py --chat --context-strategy memory --user-id 123
 - `@mem long decision <text>` — добавить решение в долговременную память.
 
 Task state machine в рабочей памяти:
-- стадии: `PLANNING`, `EXECUTION`, `VALIDATION`, `DONE`;
-- разрешенные переходы: `PLANNING -> EXECUTION`, `EXECUTION -> VALIDATION|PLANNING`, `VALIDATION -> DONE|EXECUTION`, `DONE` — терминальное состояние;
+- стадии: `PLANNING`, `EXECUTION`, `VALIDATION`, `DONE`, `REJECTED`;
+- разрешенные переходы: `PLANNING -> EXECUTION|REJECTED`, `EXECUTION -> VALIDATION|PLANNING|REJECTED`, `VALIDATION -> DONE|EXECUTION|REJECTED`, `DONE -> REJECTED`, `REJECTED` — терминальное состояние;
 - явные статусы контроля: `plan_status = DRAFT|APPROVED`, `validation_status = PENDING|PASSED|FAILED`;
 - `PLANNING -> EXECUTION` разрешен только если план не пустой и имеет статус `APPROVED`;
 - `VALIDATION -> DONE` разрешен только если `validation_status = PASSED`;
+- задача может быть отменена на любом этапе через переход в `REJECTED`, в том числе если она стоит на паузе;
 - при изменении плана approval сбрасывается обратно в `DRAFT`, а после новых изменений в реализации валидация снова становится `PENDING`;
 - пауза доступна на любой стадии через отдельный флаг `paused`;
 - состояние задачи, статусы контроля, план, ожидаемое действие и заметки автоматически подмешиваются в system prompt через prompt builder;
@@ -151,13 +152,14 @@ Task state machine в рабочей памяти:
 - `@task show` — показать текущее состояние задачи;
 - `@task pause` — поставить задачу на паузу;
 - `@task resume` — снять задачу с паузы;
+- `@task reject` — отменить задачу и перевести ее в `REJECTED`;
 - `@task approve-plan` — утвердить текущий план;
 - `@task reject-plan` — вернуть план в `DRAFT`;
 - `@task validate pass|fail` — явно зафиксировать результат валидации;
 - `@task plan+ <text>` — добавить пункт в план;
 - `@task done+ <text>` — добавить выполненный пункт;
 - `@task expected <text>` — обновить ожидаемое следующее действие;
-- `@task state <PLANNING|EXECUTION|VALIDATION|DONE>` — перевести задачу в следующий допустимый stage.
+- `@task state <PLANNING|EXECUTION|VALIDATION|DONE|REJECTED>` — перевести задачу в следующий допустимый stage.
 
 Команды для персонализации (доступны при запуске с `--user-id`):
 - `@personalization show` — показать текущий профиль пользователя;
