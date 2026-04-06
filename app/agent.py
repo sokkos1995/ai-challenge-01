@@ -20,6 +20,7 @@ from app.services.invariant_guard_service import InvariantGuardService
 from app.services.memory_service import MemoryService
 from app.services.personalization_service import PersonalizationService
 from app.services.provider_service import ProviderService
+from app.services.task_lifecycle_guard_service import TaskLifecycleGuardService
 from app.services.token_service import TokenAccountingService
 
 
@@ -81,6 +82,7 @@ class SimpleLLMAgent:
         )
         self._token_service = TokenAccountingService(self._provider_service)
         self._invariant_guard_service = InvariantGuardService(self._provider_service, provider)
+        self._task_lifecycle_guard_service = TaskLifecycleGuardService()
         self._personalization_service = PersonalizationService(
             users_base_path=users_base_path,
             user_id=self.user_id,
@@ -254,6 +256,17 @@ class SimpleLLMAgent:
             assistant_msg: dict[str, str] = {"role": "assistant", "content": response.answer}
             self._context_service.apply_after_turn(strategy, user_msg, assistant_msg, options)
             return response
+
+        if strategy == "memory":
+            lifecycle_conflict = self._task_lifecycle_guard_service.check_request(
+                prompt, self._memory_service.get_current_task_state()
+            )
+            if lifecycle_conflict is not None:
+                response = self._task_lifecycle_guard_service.build_refusal_response(lifecycle_conflict)
+                user_msg = {"role": "user", "content": prompt}
+                assistant_msg = {"role": "assistant", "content": response.answer}
+                self._context_service.apply_after_turn(strategy, user_msg, assistant_msg, options)
+                return response
 
         payload = self._context_service.build(strategy, prompt, options)
 

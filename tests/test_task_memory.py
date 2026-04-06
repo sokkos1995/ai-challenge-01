@@ -1,10 +1,14 @@
 import pytest
 
 from app.cli import _handle_task_command
+from app.models import TaskState
 from app.services.memory_service import MemoryService
+from app.services.task_lifecycle_guard_service import TaskLifecycleGuardService
 from app.task_state_machine import (
     allowed_task_stage_transitions,
+    normalize_plan_status,
     normalize_task_stage,
+    normalize_validation_status,
     validate_task_stage_transition,
 )
 
@@ -23,6 +27,51 @@ def test_normalizes_legacy_values() -> None:
     assert normalize_task_stage("new") == "PLANNING"
     assert normalize_task_stage("in_progress") == "EXECUTION"
     assert normalize_task_stage("validation") == "VALIDATION"
+    assert normalize_plan_status("approve") == "APPROVED"
+    assert normalize_validation_status("fail") == "FAILED"
+
+
+def test_blocks_execution_until_plan_is_approved() -> None:
+    task = TaskState(
+        task="Implement task state machine",
+        state="PLANNING",
+        plan=["Define stages and transitions"],
+        plan_status="DRAFT",
+    )
+
+    with pytest.raises(ValueError, match="plan is not approved"):
+        validate_task_stage_transition("PLANNING", "EXECUTION", task)
+
+
+def test_blocks_done_until_validation_passes() -> None:
+    task = TaskState(
+        task="Implement task state machine",
+        state="VALIDATION",
+        plan=["Define stages and transitions"],
+        plan_status="APPROVED",
+        validation_status="FAILED",
+    )
+
+    with pytest.raises(ValueError, match="validation has not passed"):
+        validate_task_stage_transition("VALIDATION", "DONE", task)
+
+
+def test_low_level_state_update_uses_same_transition_side_effects(tmp_path) -> None:
+    base_path = str(tmp_path / "memory")
+    service = MemoryService(memory_base_path=base_path, chat_keep_last_n=5)
+    service.update_working_task_field("task", "Implement task state machine")
+    service.update_working_task_field("plan+", "Define stages and transitions")
+    service.update_working_task_field("plan_status", "APPROVED")
+    service.update_working_task_field("state", "EXECUTION")
+    service.update_working_task_field("state", "VALIDATION")
+    service.update_working_task_field("validation_status", "PASSED")
+    service.update_working_task_field("state", "DONE")
+
+    snapshot = service.memory_snapshot()["working"]
+
+    assert snapshot["state"] == "DONE"
+    assert snapshot["expected_action"] == "Summarize the completed result."
+    assert snapshot["paused"] is False
 
 
 def test_persists_task_state_pause_and_prompt_context(tmp_path) -> None:
@@ -31,21 +80,28 @@ def test_persists_task_state_pause_and_prompt_context(tmp_path) -> None:
     service.update_working_task_field("task", "Implement task state machine")
     service.update_working_task_field("expected_action", "Approve the implementation plan")
     service.update_working_task_field("plan+", "Define stages and transitions")
+    service.update_working_task_field("plan_status", "APPROVED")
     service.update_working_task_field("note+", "Use SQLite for persistence")
     service.pause_current_task()
     service.resume_current_task()
     service.transition_task_state("EXECUTION")
+    service.transition_task_state("VALIDATION")
+    service.update_working_task_field("validation_status", "PASSED")
 
     restored = MemoryService(memory_base_path=base_path, chat_keep_last_n=5)
     snapshot = restored.memory_snapshot()["working"]
     prompt = restored.memory_layers_system_message()["content"]
 
-    assert snapshot["state"] == "EXECUTION"
+    assert snapshot["state"] == "VALIDATION"
+    assert snapshot["plan_status"] == "APPROVED"
+    assert snapshot["validation_status"] == "PASSED"
     assert snapshot["paused"] is False
     assert snapshot["expected_action"] == "Approve the implementation plan"
-    assert snapshot["allowed_transitions"] == ["VALIDATION", "PLANNING"]
-    assert "Current stage: EXECUTION" in prompt
-    assert "Allowed next stages from current stage: VALIDATION, PLANNING" in prompt
+    assert snapshot["allowed_transitions"] == ["DONE", "EXECUTION"]
+    assert "Current stage: VALIDATION" in prompt
+    assert "Plan status: APPROVED" in prompt
+    assert "Validation status: PASSED" in prompt
+    assert "Allowed next stages from current stage: DONE, EXECUTION" in prompt
     assert "Task: Implement task state machine" in prompt
 
 
@@ -85,3 +141,55 @@ def test_task_shortcuts_map_to_working_memory_updates(capsys) -> None:
         ("done+", "Implement storage migration"),
         ("expected_action", "Run validation checks"),
     ]
+
+
+def test_task_shortcuts_cover_explicit_lifecycle_controls(capsys) -> None:
+    agent = _TaskCommandAgentStub()
+
+    assert _handle_task_command("@task approve-plan", agent) is True
+    assert _handle_task_command("@task validate pass", agent) is True
+    assert _handle_task_command("@task validate fail", agent) is True
+    assert _handle_task_command("@task reject-plan", agent) is True
+
+    captured = capsys.readouterr()
+    assert "agent> task plan approved." in captured.out
+    assert "agent> task validation marked as passed." in captured.out
+    assert "agent> task validation marked as failed." in captured.out
+    assert "agent> task plan moved back to draft." in captured.out
+    assert agent.updated_fields == [
+        ("plan_status", "APPROVED"),
+        ("validation_status", "PASSED"),
+        ("validation_status", "FAILED"),
+        ("plan_status", "DRAFT"),
+    ]
+
+
+def test_lifecycle_guard_refuses_skipped_implementation_step() -> None:
+    guard = TaskLifecycleGuardService()
+    task = TaskState(
+        task="Implement task state machine",
+        state="PLANNING",
+        plan=["Define stages and transitions"],
+        plan_status="DRAFT",
+    )
+
+    conflict = guard.check_request("Сделай реализацию прямо сейчас", task)
+
+    assert conflict is not None
+    assert "реализации" in conflict.explanation
+
+
+def test_lifecycle_guard_refuses_finalization_before_done() -> None:
+    guard = TaskLifecycleGuardService()
+    task = TaskState(
+        task="Implement task state machine",
+        state="VALIDATION",
+        plan=["Define stages and transitions"],
+        plan_status="APPROVED",
+        validation_status="PASSED",
+    )
+
+    conflict = guard.check_request("Сделай финальный ответ", task)
+
+    assert conflict is not None
+    assert "DONE" in conflict.safe_alternative

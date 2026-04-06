@@ -7,8 +7,9 @@ from app.cli_utils import parse_args, print_token_stats, print_verbose_stats, re
 
 
 _TASK_COMMAND_USAGE = (
-    "agent> Usage: @task show | pause | resume | plan+ <text> | done+ <text> | "
-    "expected <text> | state <PLANNING|EXECUTION|VALIDATION|DONE>"
+    "agent> Usage: @task show | pause | resume | approve-plan | reject-plan | "
+    "validate <pass|fail> | plan+ <text> | done+ <text> | expected <text> | "
+    "state <PLANNING|EXECUTION|VALIDATION|DONE>"
 )
 _INVARIANT_COMMAND_USAGE = "agent> Usage: @invariant show | add <text> | clear"
 
@@ -106,6 +107,22 @@ def _handle_task_command(user_input: str, agent: SimpleLLMAgent) -> bool:
     if lower_payload == "resume":
         agent.resume_current_task()
         print("agent> task resumed.")
+        return True
+    if lower_payload == "approve-plan":
+        agent.update_working_task_field("plan_status", "APPROVED")
+        print("agent> task plan approved.")
+        return True
+    if lower_payload == "reject-plan":
+        agent.update_working_task_field("plan_status", "DRAFT")
+        print("agent> task plan moved back to draft.")
+        return True
+    if lower_payload == "validate pass":
+        agent.update_working_task_field("validation_status", "PASSED")
+        print("agent> task validation marked as passed.")
+        return True
+    if lower_payload == "validate fail":
+        agent.update_working_task_field("validation_status", "FAILED")
+        print("agent> task validation marked as failed.")
         return True
 
     update_commands = {

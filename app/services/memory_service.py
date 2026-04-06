@@ -6,6 +6,7 @@ from app.models import (
     FactsState,
     LongTermMemory,
     ShortTermMemory,
+    TaskState,
     WorkingMemory,
 )
 from app.prompt_builder import build_memory_prompt
@@ -17,7 +18,16 @@ from app.storage import (
     save_short_term_memory,
     save_working_memory,
 )
-from app.task_state_machine import allowed_task_stage_transitions, normalize_task_stage, validate_task_stage_transition
+from app.task_state_machine import (
+    TASK_PLAN_STATUS_APPROVED,
+    TASK_PLAN_STATUS_DRAFT,
+    TASK_VALIDATION_STATUS_PENDING,
+    allowed_task_stage_transitions,
+    normalize_plan_status,
+    normalize_task_stage,
+    normalize_validation_status,
+    validate_task_stage_transition,
+)
 
 
 class MemoryService:
@@ -156,6 +166,20 @@ class MemoryService:
         self._ensure_memory_loaded()
         return list(self._long_memory.invariants)
 
+    def get_current_task_state(self) -> TaskState:
+        self._ensure_memory_loaded()
+        return self._working_memory.current_task
+
+    @staticmethod
+    def _apply_task_stage(task: TaskState, new_state: str) -> None:
+        task.state = validate_task_stage_transition(task.state, new_state, task)
+        if task.state in {"EXECUTION", "VALIDATION"}:
+            task.validation_status = TASK_VALIDATION_STATUS_PENDING
+        if task.state == "DONE":
+            task.paused = False
+            if not task.expected_action.strip():
+                task.expected_action = "Summarize the completed result."
+
     def add_short_term_note(self, note: str) -> None:
         self._ensure_memory_loaded()
         clean = note.strip()
@@ -167,11 +191,7 @@ class MemoryService:
     def transition_task_state(self, new_state: str) -> str:
         self._ensure_memory_loaded()
         task = self._working_memory.current_task
-        task.state = validate_task_stage_transition(task.state, new_state)
-        if task.state == "DONE":
-            task.paused = False
-            if not task.expected_action.strip():
-                task.expected_action = "Summarize the completed result."
+        self._apply_task_stage(task, new_state)
         self._save_all_memory_layers()
         return task.state
 
@@ -193,7 +213,19 @@ class MemoryService:
         if normalized_field == "task":
             task.task = clean
         elif normalized_field == "state":
-            task.state = validate_task_stage_transition(task.state, clean or "PLANNING")
+            self._apply_task_stage(task, clean or "PLANNING")
+        elif normalized_field == "plan_status":
+            next_plan_status = normalize_plan_status(clean or TASK_PLAN_STATUS_DRAFT)
+            if next_plan_status == TASK_PLAN_STATUS_APPROVED and not [
+                item.strip() for item in task.plan if item.strip()
+            ]:
+                raise ValueError("Cannot approve an empty plan.")
+            task.plan_status = next_plan_status
+        elif normalized_field == "validation_status":
+            next_validation_status = normalize_validation_status(clean or TASK_VALIDATION_STATUS_PENDING)
+            if next_validation_status != TASK_VALIDATION_STATUS_PENDING and task.state != "VALIDATION":
+                raise ValueError("Validation result can be recorded only in VALIDATION stage.")
+            task.validation_status = next_validation_status
         elif normalized_field == "paused":
             task.paused = self._parse_bool(clean)
         elif normalized_field == "step":
@@ -205,17 +237,22 @@ class MemoryService:
         elif normalized_field == "plan+":
             if clean:
                 task.plan.append(clean)
+                task.plan_status = TASK_PLAN_STATUS_DRAFT
         elif normalized_field == "done+":
             if clean:
                 task.done.append(clean)
+                if task.state in {"EXECUTION", "VALIDATION"}:
+                    task.validation_status = TASK_VALIDATION_STATUS_PENDING
         elif normalized_field == "note+":
             if clean:
                 task.notes.append(clean)
         else:
             raise ValueError(
-                "Unknown work field. Use: task, state, paused, step, total, expected_action, plan+, done+, note+."
+                "Unknown work field. Use: task, state, plan_status, validation_status, paused, step, total, expected_action, plan+, done+, note+."
             )
         task.state = normalize_task_stage(task.state)
+        task.plan_status = normalize_plan_status(task.plan_status)
+        task.validation_status = normalize_validation_status(task.validation_status)
         self._save_all_memory_layers()
 
     def update_long_term_memory(self, bucket: str, key: str, value: str) -> None:
@@ -285,6 +322,8 @@ class MemoryService:
             "working": {
                 "task": task.task,
                 "state": task.state,
+                "plan_status": task.plan_status,
+                "validation_status": task.validation_status,
                 "paused": task.paused,
                 "step": task.step,
                 "total": task.total,

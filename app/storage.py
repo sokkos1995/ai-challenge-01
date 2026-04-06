@@ -2,7 +2,7 @@ import os
 import sqlite3
 
 from app.models import LongTermMemory, ShortTermMemory, TaskState, WorkingMemory
-from app.task_state_machine import normalize_task_stage
+from app.task_state_machine import normalize_plan_status, normalize_task_stage, normalize_validation_status
 
 
 def _ensure_db_parent(path: str) -> None:
@@ -120,6 +120,8 @@ def _init_work_memory_db(conn: sqlite3.Connection) -> None:
             id INTEGER PRIMARY KEY CHECK (id = 1),
             task TEXT NOT NULL,
             state TEXT NOT NULL,
+            plan_status TEXT NOT NULL DEFAULT 'DRAFT',
+            validation_status TEXT NOT NULL DEFAULT 'PENDING',
             paused INTEGER NOT NULL DEFAULT 0,
             step INTEGER NOT NULL,
             total INTEGER NOT NULL,
@@ -159,6 +161,14 @@ def _table_has_column(conn: sqlite3.Connection, table_name: str, column_name: st
 
 
 def _migrate_work_memory_db(conn: sqlite3.Connection) -> None:
+    if not _table_has_column(conn, "work_task_state", "plan_status"):
+        conn.execute(
+            "ALTER TABLE work_task_state ADD COLUMN plan_status TEXT NOT NULL DEFAULT 'DRAFT'"
+        )
+    if not _table_has_column(conn, "work_task_state", "validation_status"):
+        conn.execute(
+            "ALTER TABLE work_task_state ADD COLUMN validation_status TEXT NOT NULL DEFAULT 'PENDING'"
+        )
     if not _table_has_column(conn, "work_task_state", "paused"):
         conn.execute(
             "ALTER TABLE work_task_state ADD COLUMN paused INTEGER NOT NULL DEFAULT 0"
@@ -277,7 +287,7 @@ def load_working_memory(base_path: str) -> WorkingMemory:
         _migrate_work_memory_db(conn)
         row = conn.execute(
             """
-            SELECT task, state, paused, step, total, expected_action
+            SELECT task, state, plan_status, validation_status, paused, step, total, expected_action
             FROM work_task_state
             WHERE id = 1
             """
@@ -294,10 +304,12 @@ def load_working_memory(base_path: str) -> WorkingMemory:
         task_state = TaskState(
             task=str(row[0]),
             state=normalize_task_stage(str(row[1])),
-            paused=bool(int(row[2])),
-            step=int(row[3]),
-            total=int(row[4]),
-            expected_action=str(row[5]),
+            plan_status=normalize_plan_status(str(row[2])),
+            validation_status=normalize_validation_status(str(row[3])),
+            paused=bool(int(row[4])),
+            step=int(row[5]),
+            total=int(row[6]),
+            expected_action=str(row[7]),
             plan=[str(r[0]) for r in plan_rows],
             done=[str(r[0]) for r in done_rows],
             notes=[str(r[0]) for r in notes_rows],
@@ -316,11 +328,15 @@ def save_working_memory(base_path: str, state: WorkingMemory) -> None:
         conn.execute("BEGIN IMMEDIATE")
         conn.execute(
             """
-            INSERT INTO work_task_state (id, task, state, paused, step, total, expected_action)
-            VALUES (1, ?, ?, ?, ?, ?, ?)
+            INSERT INTO work_task_state (
+                id, task, state, plan_status, validation_status, paused, step, total, expected_action
+            )
+            VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
                 task=excluded.task,
                 state=excluded.state,
+                plan_status=excluded.plan_status,
+                validation_status=excluded.validation_status,
                 paused=excluded.paused,
                 step=excluded.step,
                 total=excluded.total,
@@ -329,6 +345,8 @@ def save_working_memory(base_path: str, state: WorkingMemory) -> None:
             (
                 task.task,
                 normalize_task_stage(task.state),
+                normalize_plan_status(task.plan_status),
+                normalize_validation_status(task.validation_status),
                 1 if task.paused else 0,
                 task.step,
                 task.total,

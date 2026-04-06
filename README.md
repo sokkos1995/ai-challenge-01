@@ -131,7 +131,7 @@ python3 llm_cli.py --chat --context-strategy memory --user-id 123
 - `@mem show` — показать снимок всех слоев памяти;
 - `@mem clear short|work|long|all` — очистить выбранный слой;
 - `@mem short note <text>` — явно сохранить заметку в краткосрочную память;
-- `@mem work <field>=<value>` — обновить рабочую память (`task`, `state`, `paused`, `step`, `total`, `expected_action`, `plan+`, `done+`, `note+`);
+- `@mem work <field>=<value>` — обновить рабочую память (`task`, `state`, `plan_status`, `validation_status`, `paused`, `step`, `total`, `expected_action`, `plan+`, `done+`, `note+`);
 - `@mem long profile <key>=<value>` — сохранить профиль пользователя в долговременную память;
 - `@mem long knowledge <key>=<value>` — сохранить знание в долговременную память;
 - `@mem long decision <text>` — добавить решение в долговременную память.
@@ -139,13 +139,21 @@ python3 llm_cli.py --chat --context-strategy memory --user-id 123
 Task state machine в рабочей памяти:
 - стадии: `PLANNING`, `EXECUTION`, `VALIDATION`, `DONE`;
 - разрешенные переходы: `PLANNING -> EXECUTION`, `EXECUTION -> VALIDATION|PLANNING`, `VALIDATION -> DONE|EXECUTION`, `DONE` — терминальное состояние;
+- явные статусы контроля: `plan_status = DRAFT|APPROVED`, `validation_status = PENDING|PASSED|FAILED`;
+- `PLANNING -> EXECUTION` разрешен только если план не пустой и имеет статус `APPROVED`;
+- `VALIDATION -> DONE` разрешен только если `validation_status = PASSED`;
+- при изменении плана approval сбрасывается обратно в `DRAFT`, а после новых изменений в реализации валидация снова становится `PENDING`;
 - пауза доступна на любой стадии через отдельный флаг `paused`;
-- состояние задачи, план, ожидаемое действие и заметки автоматически подмешиваются в system prompt через prompt builder, поэтому сессию можно остановить и продолжить без повторного объяснения контекста.
+- состояние задачи, статусы контроля, план, ожидаемое действие и заметки автоматически подмешиваются в system prompt через prompt builder;
+- в `memory`-режиме отдельный lifecycle guard не дает ассистенту перепрыгнуть этап, например начать реализацию до утверждения плана или выдать финал до завершенной валидации.
 
 Команды для task state machine:
 - `@task show` — показать текущее состояние задачи;
 - `@task pause` — поставить задачу на паузу;
 - `@task resume` — снять задачу с паузы;
+- `@task approve-plan` — утвердить текущий план;
+- `@task reject-plan` — вернуть план в `DRAFT`;
+- `@task validate pass|fail` — явно зафиксировать результат валидации;
 - `@task plan+ <text>` — добавить пункт в план;
 - `@task done+ <text>` — добавить выполненный пункт;
 - `@task expected <text>` — обновить ожидаемое следующее действие;

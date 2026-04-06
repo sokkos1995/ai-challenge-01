@@ -57,6 +57,8 @@ class BranchState:
 class TaskState:
     task: str = ""
     state: str = "PLANNING"
+    plan_status: str = "DRAFT"
+    validation_status: str = "PENDING"
     paused: bool = False
     step: int = 0
     total: int = 0

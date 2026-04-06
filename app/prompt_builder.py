@@ -32,6 +32,8 @@ def build_memory_prompt(
     allowed_transitions = ", ".join(ALLOWED_TASK_STAGE_TRANSITIONS[task.state]) or "(terminal)"
     expected_action = task.expected_action.strip() or "not set"
     current_step = f"{task.step}/{task.total}" if task.total > 0 else str(task.step)
+    plan_status = task.plan_status.strip() or "DRAFT"
+    validation_status = task.validation_status.strip() or "PENDING"
 
     return "\n\n".join(
         [
@@ -45,10 +47,17 @@ def build_memory_prompt(
                     "- DONE -> terminal",
                     f"- Current stage: {task.state}",
                     f"- Paused: {'yes' if task.paused else 'no'}",
+                    f"- Plan status: {plan_status}",
+                    f"- Validation status: {validation_status}",
                     f"- Allowed next stages from current stage: {allowed_transitions}",
                     f"- Current step: {current_step}",
                     f"- Expected action: {expected_action}",
                     _current_stage_guidance(task),
+                    "Strict lifecycle rules:",
+                    "- Do not implement if the current stage is not EXECUTION.",
+                    "- Do not implement if the plan status is not APPROVED.",
+                    "- Do not mark the task as final or complete unless validation status is PASSED and the stage becomes DONE.",
+                    "- If the user asks to skip a stage, explain the required next valid step instead of complying.",
                 ]
             ),
             "\n".join(
