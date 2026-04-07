@@ -1,2 +1,5 @@
 # SSL CA bundle for HTTPS to LLM APIs when system certs are missing (used by app/agent.py).
 certifi==2026.2.25
+
+# Official Python SDK for MCP (Model Context Protocol).
+mcp==1.27.0
