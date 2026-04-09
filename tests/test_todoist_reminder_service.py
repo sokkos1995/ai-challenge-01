@@ -97,8 +97,14 @@ def test_accepts_due_date_with_time_component() -> None:
 def test_default_reminder_fetch_uses_due_filter(tmp_path) -> None:
     calls: list[tuple[int, str]] = []
 
-    def _fake_list_tasks(self, limit: int = 0, filter_query: str = "") -> list[dict]:
-        calls.append((limit, filter_query))
+    def _fake_list_tasks(
+        self,
+        limit: int = 0,
+        filter_query: str = "",
+        *,
+        wait_for_lock: bool = True,
+    ) -> list[dict]:
+        calls.append((limit, filter_query, wait_for_lock))
         return []
 
     with patch.object(TodoistMcpClient, "list_tasks", _fake_list_tasks):
@@ -108,7 +114,7 @@ def test_default_reminder_fetch_uses_due_filter(tmp_path) -> None:
         )
         assert service.poll_once() == []
 
-    assert calls == [(0, "today | overdue")]
+    assert calls == [(0, "today | overdue", False)]
 
 
 def test_prime_existing_due_tasks_suppresses_startup_backlog(tmp_path) -> None:
@@ -131,3 +137,13 @@ def test_prime_existing_due_tasks_suppresses_startup_backlog(tmp_path) -> None:
     assert primed == 1
     assert startup_poll == []
     assert future_poll == ["agent> Todoist: сделать сегодня в 13 02 Новый reminder"]
+
+
+def test_list_tasks_can_skip_when_lock_is_busy() -> None:
+    client = TodoistMcpClient()
+    acquired = client._stdio_lock.acquire(blocking=False)
+    assert acquired is True
+    try:
+        assert client.list_tasks(limit=1, filter_query="today", wait_for_lock=False) == []
+    finally:
+        client._stdio_lock.release()

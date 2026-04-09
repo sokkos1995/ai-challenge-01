@@ -33,6 +33,7 @@ TODOIST_REMINDER_POLL_SECONDS=10
 Пример задачи:
 - текст: `сделать домашку`
 - срок: `today at 12:00`
+- сделай задачу в тудуисте сделать домашку сегодня в 13 42
 
 Важно: reminder срабатывает для задач, у которых в Todoist есть точное время (`due.datetime` или `due.date` с time-component).
 

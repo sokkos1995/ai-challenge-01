@@ -83,16 +83,22 @@ def due_todoist_tasks(tasks: list[dict[str, Any]], now: Optional[datetime] = Non
 
 
 class TodoistMcpClient:
+    _stdio_lock = threading.Lock()
+
     def __init__(self, command: str = "python3", args: Optional[list[str]] = None) -> None:
         self._command = command
         self._args = args or ["-m", "app.mcp_servers.todoist_server"]
 
     async def _call_tool_async(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+        result = None
         server_params = StdioServerParameters(command=self._command, args=self._args)
-        async with stdio_client(server_params) as (read_stream, write_stream):
-            async with ClientSession(read_stream, write_stream) as session:
-                await session.initialize()
-                result = await session.call_tool(tool_name, arguments)
+        with open(os.devnull, "w", encoding="utf-8") as errlog:
+            async with stdio_client(server_params, errlog=errlog) as (read_stream, write_stream):
+                async with ClientSession(read_stream, write_stream) as session:
+                    await session.initialize()
+                    result = await session.call_tool(tool_name, arguments)
+        if result is None:
+            raise RuntimeError(f"Todoist MCP returned no result for tool: {tool_name}")
         if result.isError:
             raise RuntimeError("Todoist MCP call failed")
         structured = result.structuredContent
@@ -119,9 +125,21 @@ class TodoistMcpClient:
             return []
         return [task for task in tasks if isinstance(task, dict)]
 
-    def list_tasks(self, limit: int = 0, filter_query: str = "") -> list[dict[str, Any]]:
+    def list_tasks(
+        self,
+        limit: int = 0,
+        filter_query: str = "",
+        *,
+        wait_for_lock: bool = True,
+    ) -> list[dict[str, Any]]:
         safe_limit = 0 if limit <= 0 else min(limit, 5000)
-        return anyio.run(self._list_tasks_async, safe_limit, filter_query.strip())
+        acquired = self._stdio_lock.acquire(blocking=wait_for_lock)
+        if not acquired:
+            return []
+        try:
+            return anyio.run(self._list_tasks_async, safe_limit, filter_query.strip())
+        finally:
+            self._stdio_lock.release()
 
     async def _create_task_async(self, content: str, due_string: str, project_id: str) -> dict[str, Any]:
         return await self._call_tool_async(
@@ -134,7 +152,8 @@ class TodoistMcpClient:
         )
 
     def create_task(self, content: str, due_string: str = "", project_id: str = "") -> dict[str, Any]:
-        return anyio.run(self._create_task_async, content, due_string, project_id)
+        with self._stdio_lock:
+            return anyio.run(self._create_task_async, content, due_string, project_id)
 
 
 class TodoistReminderService:
@@ -150,7 +169,11 @@ class TodoistReminderService:
         self._poll_interval_sec = max(5, poll_interval_sec)
         client = TodoistMcpClient()
         self._task_fetcher = task_fetcher or (
-            lambda: client.list_tasks(limit=0, filter_query=self._DEFAULT_FILTER_QUERY)
+            lambda: client.list_tasks(
+                limit=0,
+                filter_query=self._DEFAULT_FILTER_QUERY,
+                wait_for_lock=False,
+            )
         )
         self._messages: queue.Queue[str] = queue.Queue()
         self._stop_event = threading.Event()
@@ -171,7 +194,6 @@ class TodoistReminderService:
     def start(self) -> None:
         if self._thread is not None and self._thread.is_alive():
             return
-        self.prime_existing_due_tasks()
         self._stop_event.clear()
         self._thread = threading.Thread(target=self._run, name="todoist-reminders", daemon=True)
         self._thread.start()
@@ -222,6 +244,15 @@ class TodoistReminderService:
         return notifications
 
     def _run(self) -> None:
+        try:
+            self.prime_existing_due_tasks()
+            self._last_error = ""
+        except Exception as exc:
+            current_error = str(exc)
+            if current_error and current_error != self._last_error:
+                self._messages.put(f"agent> Todoist reminder error: {current_error}")
+            self._last_error = current_error
+
         while not self._stop_event.is_set():
             try:
                 for message in self.poll_once():
