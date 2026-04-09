@@ -24,7 +24,9 @@ def chat_session_system_message(options: AgentRequestOptions) -> dict[str, str]:
         "This request includes the full conversation so far with this user: every user and assistant "
         "message before the final user message is prior dialogue from the same session (restored across "
         "restarts). Use that history as ground truth. Do not claim you cannot see, remember, or access "
-        "those earlier messages."
+        "those earlier messages.",
+        "Do not claim that external actions were completed unless they were actually executed by the application. "
+        "If you cannot really call an external system from this turn, say so explicitly instead of pretending success.",
     ]
     extra = constraint_system_message(options)
     if extra:

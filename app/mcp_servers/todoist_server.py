@@ -4,7 +4,7 @@ from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 from app.config import load_env_file
-from app.mcp_servers._http import request_json
+from app.mcp_servers._http import add_query, request_json
 
 TODOIST_API_BASE = "https://api.todoist.com/rest/v2"
 TODOIST_API_BASE_FALLBACK = "https://api.todoist.com/api/v1"
@@ -32,29 +32,76 @@ def _todoist_request(
     path: str,
     token: str,
     payload: dict[str, Any] | None = None,
+    query: dict[str, str] | None = None,
 ) -> dict[str, Any] | list[Any]:
-    primary_url = f"{TODOIST_API_BASE}{path}"
+    primary_url = add_query(f"{TODOIST_API_BASE}{path}", query or {})
     try:
         return request_json(method=method, url=primary_url, token=token, payload=payload)
     except RuntimeError as exc:
         if "HTTP 410" not in str(exc):
             raise
-    fallback_url = f"{TODOIST_API_BASE_FALLBACK}{path}"
+    fallback_url = add_query(f"{TODOIST_API_BASE_FALLBACK}{path}", query or {})
     return request_json(method=method, url=fallback_url, token=token, payload=payload)
 
 
+def _unwrap_tasks(payload: dict[str, Any] | list[Any]) -> list[dict[str, Any]]:
+    if isinstance(payload, list):
+        return [item for item in payload if isinstance(item, dict)]
+    if isinstance(payload, dict):
+        results = payload.get("results")
+        if isinstance(results, list):
+            return [item for item in results if isinstance(item, dict)]
+        items = payload.get("tasks")
+        if isinstance(items, list):
+            return [item for item in items if isinstance(item, dict)]
+    return []
+
+
+def _next_cursor(payload: dict[str, Any] | list[Any]) -> str:
+    if not isinstance(payload, dict):
+        return ""
+    cursor = payload.get("next_cursor")
+    return str(cursor).strip() if cursor else ""
+
+
+def _list_all_tasks(token: str, limit: int, filter_query: str = "") -> list[dict[str, Any]]:
+    unlimited = limit <= 0
+    capped_limit = max(1, min(limit, 5000)) if not unlimited else 5000
+    aggregated: list[dict[str, Any]] = []
+    cursor = ""
+    clean_filter = filter_query.strip()
+
+    while True:
+        remaining = max(0, capped_limit - len(aggregated))
+        page_limit = 100 if unlimited else max(1, min(100, remaining))
+        query = {"limit": str(page_limit)}
+        if clean_filter:
+            query["filter"] = clean_filter
+        if cursor:
+            query["cursor"] = cursor
+        payload = _todoist_request(method="GET", path="/tasks", token=token, query=query)
+        page_items = _unwrap_tasks(payload)
+        aggregated.extend(page_items)
+        if not unlimited and len(aggregated) >= capped_limit:
+            return aggregated[:capped_limit]
+        cursor = _next_cursor(payload)
+        if not cursor or not page_items:
+            break
+
+    return aggregated if unlimited else aggregated[:capped_limit]
+
+
 @server.tool()
-def list_tasks(project_id: str = "", limit: int = 20) -> dict[str, Any]:
+def list_tasks(project_id: str = "", limit: int = 20, filter_query: str = "") -> dict[str, Any]:
     """List active Todoist tasks (optionally scoped to a project)."""
     token = _todoist_token()
-    capped_limit = max(1, min(limit, 100))
-    tasks = _todoist_request(method="GET", path="/tasks", token=token)
-    filtered = tasks if isinstance(tasks, list) else []
+    tasks = _list_all_tasks(token, limit, filter_query)
+    filtered = tasks
     if project_id:
         filtered = [task for task in filtered if str(task.get("project_id", "")) == project_id]
     return {
-        "count": min(len(filtered), capped_limit),
-        "tasks": filtered[:capped_limit],
+        "count": len(filtered),
+        "tasks": filtered,
     }
 
 

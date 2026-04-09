@@ -100,6 +100,17 @@ python3 llm_cli.py --chat
 В этом режиме агент принимает сообщения по одному, отправляет их в LLM API и выводит ответы.  
 Выход: `exit`, `quit` или `q`.
 
+Если в `.env` задан `TODOIST_API_TOKEN`, в chat-режиме автоматически включаются Todoist reminders:
+- агент периодически опрашивает Todoist через существующий MCP-сервер `app.mcp_servers.todoist_server`;
+- задачи с точным временем (`due.datetime` или `due.date` c time-component), срок которых наступил, печатаются прямо в чат;
+- уведомления сохраняются в SQLite и не дублируются после следующего polling-а или рестарта.
+
+Пример:
+
+```text
+agent> Todoist: сделать сегодня в 12 00 Купить молоко
+```
+
 Режим с компрессией истории включается отдельным флагом:
 
 ```bash
@@ -205,6 +216,9 @@ python3 llm_cli.py --chat --context-strategy memory --user-id 123
 - `LLM_MEMORY_BASE_PATH` — базовый путь для memory layers (по умолчанию `.llm_memory`; создаются файлы `.short.db`, `.work.db`, `.long.db`).
 - `LLM_USERS_BASE_PATH` — корень для пользовательских профилей и per-user сессий (по умолчанию `.llm_users`);
 - `LLM_USER_ID` — user id по умолчанию, если не хочется передавать `--user-id` каждый раз.
+- `TODOIST_REMINDERS_ENABLED` — включить/выключить Todoist reminders в chat-режиме (`1` по умолчанию, если есть `TODOIST_API_TOKEN`);
+- `TODOIST_REMINDER_POLL_SECONDS` — частота polling Todoist через MCP (по умолчанию `30`);
+- `TODOIST_REMINDER_DB_PATH` — SQLite-файл с уже отправленными уведомлениями (по умолчанию `.llm_todoist_reminders.db`).
 
 Что хранится на диске при персонализации:
 - `.llm_users/users.db` — профили пользователей и флаг завершенности интервью;

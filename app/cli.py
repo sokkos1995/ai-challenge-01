@@ -1,9 +1,12 @@
 import json
 import os
+import select
 import sys
 
 from app.agent import AgentRequestOptions, SimpleLLMAgent, load_env_file
 from app.cli_utils import parse_args, print_token_stats, print_verbose_stats, resolve_prompt
+from app.services.todoist_chat_service import TodoistChatService
+from app.services.todoist_reminder_service import TodoistReminderService
 
 
 _TASK_COMMAND_USAGE = (
@@ -188,6 +191,28 @@ def _handle_invariant_command(user_input: str, agent: SimpleLLMAgent) -> bool:
     return True
 
 
+def _read_chat_input(reminder_service: TodoistReminderService | None) -> str:
+    if reminder_service is None:
+        return input("you> ").strip()
+
+    sys.stdout.write("you> ")
+    sys.stdout.flush()
+    while True:
+        for message in reminder_service.drain_messages():
+            sys.stdout.write(f"\n{message}\n")
+            sys.stdout.write("you> ")
+            sys.stdout.flush()
+
+        ready, _, _ = select.select([sys.stdin], [], [], 1.0)
+        if not ready:
+            continue
+
+        line = sys.stdin.readline()
+        if line == "":
+            raise EOFError
+        return line.strip()
+
+
 def main() -> None:
     load_env_file()
     args = parse_args()
@@ -202,6 +227,8 @@ def main() -> None:
     last_token_stats = None
     last_token_provider = None
     last_token_model = None
+    reminder_service: TodoistReminderService | None = None
+    todoist_chat_service = TodoistChatService()
 
     options = AgentRequestOptions(
         temperature=args.temperature,
@@ -223,8 +250,11 @@ def main() -> None:
                 print(f"User ID: {agent.user_id}")
             if agent.chat_history_path and agent.context_strategy in {"full", "summary"}:
                 print(f"Chat history SQLite (restored on restart): {os.path.abspath(agent.chat_history_path)}")
+            reminder_service = TodoistReminderService.from_env()
+            if reminder_service is not None:
+                reminder_service.start()
             while True:
-                user_input = input("you> ").strip()
+                user_input = _read_chat_input(reminder_service)
                 if not user_input:
                     continue
                 if user_input.lower() in {"exit", "quit", "q"}:
@@ -261,6 +291,15 @@ def main() -> None:
                         continue
                 except Exception as exc:
                     print(f"agent> task command error: {exc}")
+                    continue
+
+                try:
+                    todoist_reply = todoist_chat_service.maybe_handle(user_input)
+                    if todoist_reply is not None:
+                        print(todoist_reply)
+                        continue
+                except Exception as exc:
+                    print(f"agent> Todoist command error: {exc}")
                     continue
 
                 if user_input.lower() == "@summary":
@@ -374,3 +413,6 @@ def main() -> None:
     except Exception as exc:
         print(str(exc))
         sys.exit(1)
+    finally:
+        if reminder_service is not None:
+            reminder_service.stop()

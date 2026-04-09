@@ -235,6 +235,19 @@ def _init_user_profile_db(conn: sqlite3.Connection) -> None:
     )
 
 
+def _init_todoist_reminder_db(conn: sqlite3.Connection) -> None:
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS todoist_reminder_notifications (
+            task_id TEXT NOT NULL,
+            due_key TEXT NOT NULL,
+            notified_at TEXT NOT NULL,
+            PRIMARY KEY (task_id, due_key)
+        )
+        """
+    )
+
+
 def load_short_term_memory(base_path: str) -> ShortTermMemory:
     path = _short_memory_path(base_path)
     if not os.path.exists(path):
@@ -537,6 +550,58 @@ def set_user_interview_completed(path: str, user_id: str, completed: bool) -> No
             ON CONFLICT(user_id) DO UPDATE SET interview_completed = excluded.interview_completed
             """,
             (clean_user_id, 1 if completed else 0),
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def has_todoist_notification(path: str, task_id: str, due_key: str) -> bool:
+    clean_task_id = task_id.strip()
+    clean_due_key = due_key.strip()
+    if not clean_task_id or not clean_due_key or not os.path.exists(path):
+        return False
+
+    conn = sqlite3.connect(path)
+    try:
+        _init_todoist_reminder_db(conn)
+        row = conn.execute(
+            """
+            SELECT 1
+            FROM todoist_reminder_notifications
+            WHERE task_id = ? AND due_key = ?
+            """,
+            (clean_task_id, clean_due_key),
+        ).fetchone()
+    finally:
+        conn.close()
+    return row is not None
+
+
+def mark_todoist_notification_sent(path: str, task_id: str, due_key: str, notified_at: str) -> None:
+    clean_task_id = task_id.strip()
+    clean_due_key = due_key.strip()
+    if not clean_task_id:
+        raise ValueError("task_id must not be empty")
+    if not clean_due_key:
+        raise ValueError("due_key must not be empty")
+    if not notified_at.strip():
+        raise ValueError("notified_at must not be empty")
+
+    _ensure_db_parent(path)
+    conn = sqlite3.connect(path)
+    try:
+        _init_todoist_reminder_db(conn)
+        conn.execute("BEGIN IMMEDIATE")
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO todoist_reminder_notifications (task_id, due_key, notified_at)
+            VALUES (?, ?, ?)
+            """,
+            (clean_task_id, clean_due_key, notified_at.strip()),
         )
         conn.commit()
     except Exception:
