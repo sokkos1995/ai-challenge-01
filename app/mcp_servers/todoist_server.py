@@ -1,4 +1,5 @@
 import os
+from datetime import date, datetime
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
@@ -64,6 +65,29 @@ def _next_cursor(payload: dict[str, Any] | list[Any]) -> str:
     return str(cursor).strip() if cursor else ""
 
 
+def _extract_due_date(task: dict[str, Any]) -> date | None:
+    due = task.get("due")
+    if not isinstance(due, dict):
+        return None
+
+    due_datetime_raw = str(due.get("datetime", "")).strip()
+    if due_datetime_raw:
+        normalized = due_datetime_raw.replace("Z", "+00:00")
+        try:
+            return datetime.fromisoformat(normalized).date()
+        except ValueError:
+            return None
+
+    due_date_raw = str(due.get("date", "")).strip()
+    if not due_date_raw:
+        return None
+    date_part = due_date_raw.split("T", 1)[0]
+    try:
+        return date.fromisoformat(date_part)
+    except ValueError:
+        return None
+
+
 def _list_all_tasks(token: str, limit: int, filter_query: str = "") -> list[dict[str, Any]]:
     unlimited = limit <= 0
     capped_limit = max(1, min(limit, 5000)) if not unlimited else 5000
@@ -95,10 +119,15 @@ def _list_all_tasks(token: str, limit: int, filter_query: str = "") -> list[dict
 def list_tasks(project_id: str = "", limit: int = 20, filter_query: str = "") -> dict[str, Any]:
     """List active Todoist tasks (optionally scoped to a project)."""
     token = _todoist_token()
-    tasks = _list_all_tasks(token, limit, filter_query)
+    clean_filter = filter_query.strip().lower()
+    source_filter = "" if clean_filter == "today" else filter_query
+    tasks = _list_all_tasks(token, limit, source_filter)
     filtered = tasks
     if project_id:
         filtered = [task for task in filtered if str(task.get("project_id", "")) == project_id]
+    if clean_filter == "today":
+        today = date.today()
+        filtered = [task for task in filtered if _extract_due_date(task) == today]
     return {
         "count": len(filtered),
         "tasks": filtered,
