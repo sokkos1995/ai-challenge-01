@@ -64,10 +64,10 @@ python3 homeworks/src/day_21_indexing.py
 
 ```bash
 python3 homeworks/src/day_21_indexing.py \
-  --root "/path/to/your/java-repo" \
-  --query "как в проекте реализованы mcp инструменты и оркестрация" \
+  --root "/Users/konstantinsokolov/dev/projects/pet_projects/fastapi_sbx" \
+  --query "как реализован магазин товаров, через какие инструменты" \
   --top-k 5 \
-  --out-dir "/path/to/your/java-repo/index_artifacts/day_21"
+  --out-dir "/Users/konstantinsokolov/dev/projects/pet_projects/ai_challenge/hw/hw01/homeworks/artifacts/day_21"
 ```
 
 ## Результат
