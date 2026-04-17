@@ -5,6 +5,8 @@ import sys
 
 from app.agent import AgentRequestOptions, SimpleLLMAgent, load_env_file
 from app.cli_utils import parse_args, print_token_stats, print_verbose_stats, resolve_prompt
+from app.rag_output import format_rag_answer
+from app.services.rag_service import RagAnswer, RagService
 from app.services.todoist_chat_service import TodoistChatService
 from app.services.todoist_reminder_service import TodoistReminderService
 
@@ -213,6 +215,20 @@ def _read_chat_input(reminder_service: TodoistReminderService | None) -> str:
         return line.strip()
 
 
+def _rag_answer_for_prompt(
+    rag_service: RagService,
+    prompt: str,
+    agent: SimpleLLMAgent,
+    options: AgentRequestOptions,
+    chat_mode: bool,
+) -> RagAnswer:
+    rag_prompt, contexts, low_relevance = rag_service.build_prompt(prompt)
+    if low_relevance:
+        return rag_service.low_relevance_answer(contexts)
+    response = agent.ask_chat(rag_prompt, options) if chat_mode else agent.ask(rag_prompt, options)
+    return rag_service.parse_answer(response.answer, contexts)
+
+
 def main() -> None:
     load_env_file()
     args = parse_args()
@@ -229,6 +245,8 @@ def main() -> None:
     last_token_model = None
     reminder_service: TodoistReminderService | None = None
     todoist_chat_service = TodoistChatService()
+    rag_service: RagService | None = None
+    rag_enabled = bool(getattr(args, "rag", False))
 
     options = AgentRequestOptions(
         temperature=args.temperature,
@@ -242,10 +260,19 @@ def main() -> None:
     )
 
     try:
+        if rag_enabled:
+            rag_service = RagService.from_json_index(
+                index_path=str(args.rag_index_path),
+                top_k_before=int(args.rag_top_k_before),
+                top_k_after=int(args.rag_top_k_after),
+                similarity_threshold=float(args.rag_similarity_threshold),
+                min_context_score=float(args.rag_min_context_score),
+            )
         _ensure_user_personalization(agent)
         if args.chat:
             print("Interactive mode started. Type your message and press Enter. Type 'exit' to quit.")
             print(f"Context strategy: {agent.context_strategy}")
+            print(f"RAG mode: {'ON' if rag_enabled else 'OFF'}")
             if agent.user_id:
                 print(f"User ID: {agent.user_id}")
             if agent.chat_history_path and agent.context_strategy in {"full", "summary"}:
@@ -274,6 +301,19 @@ def main() -> None:
                             last_token_provider or agent.provider,
                             last_token_model or agent.model_candidates[0],
                         )
+                    continue
+
+                if user_input.lower() == "@rag":
+                    rag_enabled = not rag_enabled
+                    print(f"agent> RAG mode: {'ON' if rag_enabled else 'OFF'}")
+                    continue
+                if user_input.lower() in {"@rag on", "@rag off", "@rag status"}:
+                    cmd = user_input.lower().split()[-1]
+                    if cmd == "on":
+                        rag_enabled = True
+                    elif cmd == "off":
+                        rag_enabled = False
+                    print(f"agent> RAG mode: {'ON' if rag_enabled else 'OFF'}")
                     continue
 
                 if _handle_personalization_command(user_input, agent):
@@ -383,11 +423,19 @@ def main() -> None:
                         print(f"agent> switched to branch {branch_id}.")
                         continue
 
-                response = agent.ask_chat(user_input, options)
-                print(f"agent> {response.answer}")
+                if rag_enabled:
+                    if rag_service is None:
+                        print("agent> RAG service is not initialized.")
+                        continue
+                    rag_answer = _rag_answer_for_prompt(rag_service, user_input, agent, options, chat_mode=True)
+                    print(format_rag_answer(rag_answer))
+                else:
+                    response = agent.ask_chat(user_input, options)
+                    print(f"agent> {response.answer}")
                 if args.verbose:
-                    print_verbose_stats(response.raw_data, response.provider, response.model, response.latency_sec)
-                if options.count_tokens and getattr(response, "token_stats", None):
+                    if not rag_enabled:
+                        print_verbose_stats(response.raw_data, response.provider, response.model, response.latency_sec)
+                if not rag_enabled and options.count_tokens and getattr(response, "token_stats", None):
                     last_token_stats = response.token_stats
                     last_token_provider = response.provider
                     last_token_model = response.model
@@ -395,15 +443,21 @@ def main() -> None:
             return
 
         prompt = resolve_prompt(args)
-        response = agent.ask(prompt, options)
-        print(response.answer)
-        if args.verbose:
-            print_verbose_stats(response.raw_data, response.provider, response.model, response.latency_sec)
-        if options.count_tokens and getattr(response, "token_stats", None):
-            print_token_stats(response.token_stats, response.provider, response.model)
-            last_token_stats = response.token_stats
-            last_token_provider = response.provider
-            last_token_model = response.model
+        if rag_enabled:
+            if rag_service is None:
+                raise RuntimeError("RAG service is not initialized.")
+            rag_answer = _rag_answer_for_prompt(rag_service, prompt, agent, options, chat_mode=False)
+            print(format_rag_answer(rag_answer, prefix=""))
+        else:
+            response = agent.ask(prompt, options)
+            print(response.answer)
+            if args.verbose:
+                print_verbose_stats(response.raw_data, response.provider, response.model, response.latency_sec)
+            if options.count_tokens and getattr(response, "token_stats", None):
+                print_token_stats(response.token_stats, response.provider, response.model)
+                last_token_stats = response.token_stats
+                last_token_provider = response.provider
+                last_token_model = response.model
     except KeyboardInterrupt:
         print("\nInterrupted.")
         sys.exit(1)

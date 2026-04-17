@@ -97,6 +97,47 @@ GITHUB_TOKEN=github_personal_access_token
 python3 llm_cli.py --chat
 ```
 
+### Grounded RAG в основном приложении
+
+Функционал RAG из домашних заданий (`day_22`-`day_24`) перенесен в `app/` как отдельный сервис:
+- `app/services/rag_service.py` — retrieval + heuristic rerank + grounded output;
+- обязательный формат ответа в RAG-режиме: `answer`, `sources`, `quotes`;
+- anti-hallucination правило: при слабом контексте ассистент отвечает  
+  `Не знаю по текущему контексту. Уточните вопрос.`
+
+Одноразовый запрос в RAG-режиме:
+
+```bash
+python3 llm_cli.py --rag \
+  --rag-index-path "homeworks/artifacts/day_21/index_structured.json" \
+  "Как в проекте реализована MCP orchestration?"
+```
+
+RAG в интерактивном чате:
+
+```bash
+python3 llm_cli.py --chat --rag
+```
+
+Команды внутри чата:
+- `@rag` — переключить RAG on/off;
+- `@rag on` / `@rag off` — явное переключение;
+- `@rag status` — показать текущий статус.
+
+Настройки RAG через флаги:
+- `--rag-index-path` — путь к JSON-индексу (`records[]`);
+- `--rag-top-k-before` — top-k до фильтрации;
+- `--rag-top-k-after` — top-k после фильтрации;
+- `--rag-similarity-threshold` — порог релевантности;
+- `--rag-min-context-score` — порог режима `"Не знаю..."`.
+
+Эквивалентные env-переменные:
+- `LLM_RAG_INDEX_PATH`
+- `LLM_RAG_TOP_K_BEFORE`
+- `LLM_RAG_TOP_K_AFTER`
+- `LLM_RAG_SIMILARITY_THRESHOLD`
+- `LLM_RAG_MIN_CONTEXT_SCORE`
+
 В этом режиме агент принимает сообщения по одному, отправляет их в LLM API и выводит ответы.  
 Выход: `exit`, `quit` или `q`.
 

@@ -108,6 +108,40 @@ def parse_args() -> argparse.Namespace:
             "For chat mode this may add extra API calls to estimate tokens for history/current parts."
         ),
     )
+    parser.add_argument(
+        "--rag",
+        action="store_true",
+        help="Enable grounded RAG mode (answer + sources + quotes).",
+    )
+    parser.add_argument(
+        "--rag-index-path",
+        default=os.getenv("LLM_RAG_INDEX_PATH", "homeworks/artifacts/day_21/index_structured.json"),
+        help="Path to JSON RAG index payload with records[].",
+    )
+    parser.add_argument(
+        "--rag-top-k-before",
+        type=int,
+        default=int(os.getenv("LLM_RAG_TOP_K_BEFORE", "8")),
+        help="RAG retrieval top-k before filtering.",
+    )
+    parser.add_argument(
+        "--rag-top-k-after",
+        type=int,
+        default=int(os.getenv("LLM_RAG_TOP_K_AFTER", "4")),
+        help="RAG retrieval top-k after filtering.",
+    )
+    parser.add_argument(
+        "--rag-similarity-threshold",
+        type=float,
+        default=float(os.getenv("LLM_RAG_SIMILARITY_THRESHOLD", "0.2")),
+        help="Rerank score threshold for context filtering.",
+    )
+    parser.add_argument(
+        "--rag-min-context-score",
+        type=float,
+        default=float(os.getenv("LLM_RAG_MIN_CONTEXT_SCORE", "0.24")),
+        help="Below this max context score assistant must answer 'Не знаю...'.",
+    )
     args = parser.parse_args()
 
     if not 0 <= args.temperature <= 2:
@@ -118,6 +152,10 @@ def parse_args() -> argparse.Namespace:
         parser.error("--top-k must be >= 1")
     if args.max_output_tokens is not None and args.max_output_tokens < 1:
         parser.error("--max-output-tokens must be >= 1")
+    if args.rag_top_k_before < 1:
+        parser.error("--rag-top-k-before must be >= 1")
+    if args.rag_top_k_after < 1:
+        parser.error("--rag-top-k-after must be >= 1")
     return args
 
 
