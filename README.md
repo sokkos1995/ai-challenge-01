@@ -123,6 +123,13 @@ python3 llm_cli.py --chat --rag
 - `@rag` — переключить RAG on/off;
 - `@rag on` / `@rag off` — явное переключение;
 - `@rag status` — показать текущий статус.
+- `@rag memory` — показать память mini-chat задачи (`goal`, `constraints`, `terms`, `clarified`).
+
+В chat-режиме `--rag` теперь работает как mini-chat с task memory:
+- хранится история текущей RAG-сессии;
+- каждый новый вопрос расширяется накопленной памятью задачи;
+- это помогает удерживать цель и ограничения диалога между сообщениями;
+- формат ответа остается grounded: `answer` + обязательные `sources` и `quotes`.
 
 Настройки RAG через флаги:
 - `--rag-index-path` — путь к JSON-индексу (`records[]`);

@@ -1,7 +1,7 @@
 import pytest
 
-from app.cli import _handle_task_command
 from app.models import TaskState
+from app.services.chat_command_service import handle_task_command
 from app.services.memory_service import MemoryService
 from app.services.task_lifecycle_guard_service import TaskLifecycleGuardService
 from app.task_state_machine import (
@@ -153,9 +153,9 @@ class _TaskCommandAgentStub:
 def test_task_shortcuts_map_to_working_memory_updates(capsys) -> None:
     agent = _TaskCommandAgentStub()
 
-    assert _handle_task_command("@task plan+ Define API contract", agent) is True
-    assert _handle_task_command("@task done+ Implement storage migration", agent) is True
-    assert _handle_task_command("@task expected Run validation checks", agent) is True
+    assert handle_task_command("@task plan+ Define API contract", agent) is True
+    assert handle_task_command("@task done+ Implement storage migration", agent) is True
+    assert handle_task_command("@task expected Run validation checks", agent) is True
 
     captured = capsys.readouterr()
     assert "agent> task plan updated." in captured.out
@@ -171,11 +171,11 @@ def test_task_shortcuts_map_to_working_memory_updates(capsys) -> None:
 def test_task_shortcuts_cover_explicit_lifecycle_controls(capsys) -> None:
     agent = _TaskCommandAgentStub()
 
-    assert _handle_task_command("@task reject", agent) is True
-    assert _handle_task_command("@task approve-plan", agent) is True
-    assert _handle_task_command("@task validate pass", agent) is True
-    assert _handle_task_command("@task validate fail", agent) is True
-    assert _handle_task_command("@task reject-plan", agent) is True
+    assert handle_task_command("@task reject", agent) is True
+    assert handle_task_command("@task approve-plan", agent) is True
+    assert handle_task_command("@task validate pass", agent) is True
+    assert handle_task_command("@task validate fail", agent) is True
+    assert handle_task_command("@task reject-plan", agent) is True
 
     captured = capsys.readouterr()
     assert "agent> task state updated: REJECTED" in captured.out

@@ -1,23 +1,24 @@
-import json
 import os
 import select
 import sys
 
 from app.agent import AgentRequestOptions, SimpleLLMAgent, load_env_file
-from app.cli_utils import parse_args, print_token_stats, print_verbose_stats, resolve_prompt
+from app.cli_utils import print_token_stats, print_verbose_stats, resolve_prompt, parse_args
 from app.rag_output import format_rag_answer
+from app.services.chat_command_service import (
+    handle_branching_command,
+    handle_invariant_command,
+    handle_memory_command,
+    handle_personalization_command,
+    handle_rag_command,
+    handle_summary_command,
+    handle_task_command,
+    handle_tokens_command,
+)
+from app.services.rag_chat_service import RagChatService
 from app.services.rag_service import RagAnswer, RagService
 from app.services.todoist_chat_service import TodoistChatService
 from app.services.todoist_reminder_service import TodoistReminderService
-
-
-_TASK_COMMAND_USAGE = (
-    "agent> Usage: @task show | pause | resume | reject | approve-plan | reject-plan | "
-    "validate <pass|fail> | plan+ <text> | done+ <text> | expected <text> | "
-    "state <PLANNING|EXECUTION|VALIDATION|DONE|REJECTED>"
-)
-_INVARIANT_COMMAND_USAGE = "agent> Usage: @invariant show | add <text> | clear"
-
 
 def _ask_interview_value(prompt: str, default: str = "") -> str:
     suffix = f" [{default}]" if default else ""
@@ -58,141 +59,6 @@ def _ensure_user_personalization(agent: SimpleLLMAgent) -> None:
         _run_personalization_interview(agent)
 
 
-def _handle_personalization_command(user_input: str, agent: SimpleLLMAgent) -> bool:
-    if not user_input.lower().startswith("@personalization"):
-        return False
-    if not agent.user_id:
-        print("agent> Personalization is available only with --user-id.")
-        return True
-
-    payload = user_input[len("@personalization") :].strip()
-    if not payload or payload.lower() == "show":
-        snapshot = agent.personalization_snapshot()
-        print(f"agent> personalization:\n{json.dumps(snapshot, ensure_ascii=False, indent=2)}")
-        return True
-    if payload.lower() == "interview":
-        _run_personalization_interview(agent)
-        return True
-    if "=" not in payload:
-        print("agent> Usage: @personalization show | interview | <key>=<value>")
-        return True
-
-    key, value = payload.split("=", 1)
-    clean_key = key.strip()
-    if not clean_key:
-        print("agent> Personalization key must not be empty.")
-        return True
-    agent.update_personalization(clean_key, value.strip())
-    print(f"agent> personalization updated: {clean_key}")
-    return True
-
-
-def _task_command_argument(payload: str, prefix: str, usage: str) -> str:
-    value = payload[len(prefix) :].strip()
-    if not value:
-        raise ValueError(usage)
-    return value
-
-
-def _handle_task_command(user_input: str, agent: SimpleLLMAgent) -> bool:
-    if not user_input.lower().startswith("@task"):
-        return False
-
-    payload = user_input[len("@task") :].strip()
-    if not payload or payload.lower() == "show":
-        snapshot = agent.memory_snapshot().get("working", {})
-        print(f"agent> task:\n{json.dumps(snapshot, ensure_ascii=False, indent=2)}")
-        return True
-
-    lower_payload = payload.lower()
-    if lower_payload == "pause":
-        agent.pause_current_task()
-        print("agent> task paused.")
-        return True
-    if lower_payload == "resume":
-        agent.resume_current_task()
-        print("agent> task resumed.")
-        return True
-    if lower_payload == "reject":
-        applied_state = agent.transition_task_state("REJECTED")
-        print(f"agent> task state updated: {applied_state}")
-        return True
-    if lower_payload == "approve-plan":
-        agent.update_working_task_field("plan_status", "APPROVED")
-        print("agent> task plan approved.")
-        return True
-    if lower_payload == "reject-plan":
-        agent.update_working_task_field("plan_status", "DRAFT")
-        print("agent> task plan moved back to draft.")
-        return True
-    if lower_payload == "validate pass":
-        agent.update_working_task_field("validation_status", "PASSED")
-        print("agent> task validation marked as passed.")
-        return True
-    if lower_payload == "validate fail":
-        agent.update_working_task_field("validation_status", "FAILED")
-        print("agent> task validation marked as failed.")
-        return True
-
-    update_commands = {
-        "plan+ ": ("plan+", "agent> Usage: @task plan+ <text>", "agent> task plan updated."),
-        "done+ ": ("done+", "agent> Usage: @task done+ <text>", "agent> task done updated."),
-        "expected ": (
-            "expected_action",
-            "agent> Usage: @task expected <text>",
-            "agent> task expected action updated.",
-        ),
-    }
-    for prefix, (field_name, usage, success_message) in update_commands.items():
-        if lower_payload.startswith(prefix):
-            field_value = _task_command_argument(payload, prefix, usage)
-            agent.update_working_task_field(field_name, field_value)
-            print(success_message)
-            return True
-
-    if lower_payload.startswith("state "):
-        next_state = _task_command_argument(
-            payload,
-            "state ",
-            "agent> Usage: @task state <PLANNING|EXECUTION|VALIDATION|DONE|REJECTED>",
-        )
-        applied_state = agent.transition_task_state(next_state)
-        print(f"agent> task state updated: {applied_state}")
-        return True
-
-    print(_TASK_COMMAND_USAGE)
-    return True
-
-
-def _handle_invariant_command(user_input: str, agent: SimpleLLMAgent) -> bool:
-    if not user_input.lower().startswith("@invariant"):
-        return False
-
-    payload = user_input[len("@invariant") :].strip()
-    if not payload or payload.lower() == "show":
-        snapshot = agent.memory_snapshot()
-        invariants = snapshot.get("long_term", {}).get("invariants", [])
-        print(f"agent> invariants:\n{json.dumps(invariants, ensure_ascii=False, indent=2)}")
-        return True
-
-    lower_payload = payload.lower()
-    if lower_payload == "clear":
-        agent.clear_invariants()
-        print("agent> invariants cleared.")
-        return True
-    if lower_payload.startswith("add "):
-        invariant = payload[4:].strip()
-        if not invariant:
-            print(_INVARIANT_COMMAND_USAGE)
-            return True
-        agent.add_invariant(invariant)
-        print("agent> invariant saved.")
-        return True
-
-    print(_INVARIANT_COMMAND_USAGE)
-    return True
-
-
 def _read_chat_input(reminder_service: TodoistReminderService | None) -> str:
     if reminder_service is None:
         return input("you> ").strip()
@@ -217,11 +83,17 @@ def _read_chat_input(reminder_service: TodoistReminderService | None) -> str:
 
 def _rag_answer_for_prompt(
     rag_service: RagService,
+    rag_chat_service: RagChatService | None,
     prompt: str,
     agent: SimpleLLMAgent,
     options: AgentRequestOptions,
     chat_mode: bool,
 ) -> RagAnswer:
+    if chat_mode and rag_chat_service is not None:
+        return rag_chat_service.ask(
+            prompt,
+            ask_llm=lambda rag_prompt: agent.ask_chat(rag_prompt, options),
+        )
     rag_prompt, contexts, low_relevance = rag_service.build_prompt(prompt)
     if low_relevance:
         return rag_service.low_relevance_answer(contexts)
@@ -246,6 +118,7 @@ def main() -> None:
     reminder_service: TodoistReminderService | None = None
     todoist_chat_service = TodoistChatService()
     rag_service: RagService | None = None
+    rag_chat_service: RagChatService | None = None
     rag_enabled = bool(getattr(args, "rag", False))
 
     options = AgentRequestOptions(
@@ -268,6 +141,7 @@ def main() -> None:
                 similarity_threshold=float(args.rag_similarity_threshold),
                 min_context_score=float(args.rag_min_context_score),
             )
+            rag_chat_service = RagChatService(rag_service)
         _ensure_user_personalization(agent)
         if args.chat:
             print("Interactive mode started. Type your message and press Enter. Type 'exit' to quit.")
@@ -288,46 +162,34 @@ def main() -> None:
                     print("Bye!")
                     break
 
-                if user_input.lower().startswith("@tokens"):
-                    cmd = user_input.lower()
-                    if "off" in cmd:
-                        tokens_enabled = False
-                    else:
-                        tokens_enabled = True
-                    options.count_tokens = tokens_enabled
-                    if last_token_stats is not None:
-                        print_token_stats(
-                            last_token_stats,
-                            last_token_provider or agent.provider,
-                            last_token_model or agent.model_candidates[0],
-                        )
+                handled, tokens_enabled = handle_tokens_command(
+                    user_input=user_input,
+                    options=options,
+                    tokens_enabled=tokens_enabled,
+                    last_token_stats=last_token_stats,
+                    last_token_provider=last_token_provider,
+                    last_token_model=last_token_model,
+                    agent=agent,
+                )
+                if handled:
                     continue
 
-                if user_input.lower() == "@rag":
-                    rag_enabled = not rag_enabled
-                    print(f"agent> RAG mode: {'ON' if rag_enabled else 'OFF'}")
-                    continue
-                if user_input.lower() in {"@rag on", "@rag off", "@rag status"}:
-                    cmd = user_input.lower().split()[-1]
-                    if cmd == "on":
-                        rag_enabled = True
-                    elif cmd == "off":
-                        rag_enabled = False
-                    print(f"agent> RAG mode: {'ON' if rag_enabled else 'OFF'}")
+                handled, rag_enabled = handle_rag_command(user_input, rag_enabled, rag_chat_service)
+                if handled:
                     continue
 
-                if _handle_personalization_command(user_input, agent):
+                if handle_personalization_command(user_input, agent, _run_personalization_interview):
                     continue
 
                 try:
-                    if _handle_invariant_command(user_input, agent):
+                    if handle_invariant_command(user_input, agent):
                         continue
                 except Exception as exc:
                     print(f"agent> invariant command error: {exc}")
                     continue
 
                 try:
-                    if _handle_task_command(user_input, agent):
+                    if handle_task_command(user_input, agent):
                         continue
                 except Exception as exc:
                     print(f"agent> task command error: {exc}")
@@ -342,92 +204,31 @@ def main() -> None:
                     print(f"agent> Todoist command error: {exc}")
                     continue
 
-                if user_input.lower() == "@summary":
-                    if not agent.chat_summary_enabled:
-                        print("agent> Summary mode is OFF. Run with --summary to enable.")
-                    else:
-                        summary = agent.get_chat_summary().strip()
-                        if summary:
-                            print(f"agent> Summary:\n{summary}")
-                        else:
-                            print("agent> Summary is empty yet.")
+                if handle_summary_command(user_input, agent):
                     continue
 
-                if user_input.lower().startswith("@mem"):
-                    try:
-                        if user_input.lower() == "@mem show":
-                            snapshot = agent.memory_snapshot()
-                            print(f"agent> memory:\n{json.dumps(snapshot, ensure_ascii=False, indent=2)}")
-                            continue
-                        if user_input.lower().startswith("@mem clear "):
-                            layer = user_input[len("@mem clear ") :].strip()
-                            agent.clear_memory_layer(layer)
-                            print(f"agent> memory layer cleared: {layer}")
-                            continue
-                        if user_input.lower().startswith("@mem short note "):
-                            note = user_input[len("@mem short note ") :].strip()
-                            agent.add_short_term_note(note)
-                            print("agent> short-term note saved.")
-                            continue
-                        if user_input.lower().startswith("@mem work "):
-                            payload = user_input[len("@mem work ") :].strip()
-                            if "=" not in payload:
-                                print("agent> Usage: @mem work <field>=<value>")
-                                continue
-                            field_name, field_value = payload.split("=", 1)
-                            agent.update_working_task_field(field_name.strip(), field_value.strip())
-                            print(f"agent> working memory updated: {field_name.strip()}")
-                            continue
-                        if user_input.lower().startswith("@mem long decision "):
-                            decision = user_input[len("@mem long decision ") :].strip()
-                            agent.add_long_term_decision(decision)
-                            print("agent> long-term decision saved.")
-                            continue
-                        if user_input.lower().startswith("@mem long "):
-                            payload = user_input[len("@mem long ") :].strip()
-                            parts = payload.split(" ", 1)
-                            if len(parts) != 2 or "=" not in parts[1]:
-                                print("agent> Usage: @mem long <profile|knowledge> <key>=<value>")
-                                continue
-                            bucket = parts[0].strip().lower()
-                            key, value = parts[1].split("=", 1)
-                            agent.update_long_term_memory(bucket, key.strip(), value.strip())
-                            print(f"agent> long-term {bucket} updated: {key.strip()}")
-                            continue
-                        print("agent> Unknown @mem command. Use: show, clear, short note, work, long.")
+                try:
+                    if handle_memory_command(user_input, agent):
                         continue
-                    except Exception as exc:
-                        print(f"agent> memory command error: {exc}")
-                        continue
+                except Exception as exc:
+                    print(f"agent> memory command error: {exc}")
+                    continue
 
-                if agent.context_strategy == "branching":
-                    cmd = user_input.lower()
-                    if cmd == "@branches" or cmd == "@branch-info":
-                        print(f"agent> {agent.get_branch_info()}")
-                        continue
-                    if cmd == "@checkpoint":
-                        agent.branch_checkpoint()
-                        print("agent> checkpoint saved.")
-                        continue
-                    if cmd == "@fork":
-                        agent.branch_fork()
-                        print("agent> fork created (branch 1 active).")
-                        continue
-                    if cmd.startswith("@switch"):
-                        parts = user_input.split()
-                        branch_id = parts[1] if len(parts) >= 2 else ""
-                        if not branch_id:
-                            print("agent> Usage: @switch 1  (or  @switch 2).")
-                            continue
-                        agent.branch_switch(branch_id)
-                        print(f"agent> switched to branch {branch_id}.")
-                        continue
+                if handle_branching_command(user_input, agent):
+                    continue
 
                 if rag_enabled:
                     if rag_service is None:
                         print("agent> RAG service is not initialized.")
                         continue
-                    rag_answer = _rag_answer_for_prompt(rag_service, user_input, agent, options, chat_mode=True)
+                    rag_answer = _rag_answer_for_prompt(
+                        rag_service,
+                        rag_chat_service,
+                        user_input,
+                        agent,
+                        options,
+                        chat_mode=True,
+                    )
                     print(format_rag_answer(rag_answer))
                 else:
                     response = agent.ask_chat(user_input, options)
@@ -446,7 +247,14 @@ def main() -> None:
         if rag_enabled:
             if rag_service is None:
                 raise RuntimeError("RAG service is not initialized.")
-            rag_answer = _rag_answer_for_prompt(rag_service, prompt, agent, options, chat_mode=False)
+            rag_answer = _rag_answer_for_prompt(
+                rag_service,
+                rag_chat_service,
+                prompt,
+                agent,
+                options,
+                chat_mode=False,
+            )
             print(format_rag_answer(rag_answer, prefix=""))
         else:
             response = agent.ask(prompt, options)
