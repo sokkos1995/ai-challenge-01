@@ -4,6 +4,7 @@ import argparse
 import json
 import re
 import statistics
+import subprocess
 import sys
 import time
 import urllib.error
@@ -229,6 +230,16 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--local-model", default=DEFAULT_LOCAL_MODEL)
     parser.add_argument("--ollama-url", default=DEFAULT_OLLAMA_URL)
     parser.add_argument(
+        "--build-index-if-missing",
+        action="store_true",
+        help="Auto-build day 21 index if --index-path does not exist.",
+    )
+    parser.add_argument(
+        "--index-root",
+        default=str(REPO_ROOT),
+        help="Root directory for auto-building index via day_21_indexing.py.",
+    )
+    parser.add_argument(
         "--with-cloud",
         action="store_true",
         help="Also run cloud provider via SimpleLLMAgent.from_env().",
@@ -236,13 +247,47 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _maybe_build_index(index_path: Path, index_root: Path) -> None:
+    out_dir = index_path.parent
+    script_path = REPO_ROOT / "homeworks" / "src" / "day_21_indexing.py"
+    command = [
+        "python3",
+        str(script_path),
+        "--root",
+        str(index_root),
+        "--out-dir",
+        str(out_dir),
+    ]
+    print("Index file is missing, starting auto-build via day_21_indexing.py ...")
+    try:
+        subprocess.run(command, cwd=str(REPO_ROOT), check=True)
+    except subprocess.CalledProcessError as exc:
+        raise RuntimeError(f"Auto-build index failed (exit code {exc.returncode}).") from exc
+    if not index_path.exists():
+        raise RuntimeError(
+            "Auto-build finished, but index file still not found.\n"
+            f"Expected path: {index_path}"
+        )
+
+
 def main() -> None:
     load_env_file()
     args = _build_parser().parse_args()
 
     index_path = Path(args.index_path).expanduser().resolve()
+    index_root = Path(args.index_root).expanduser().resolve()
     out_dir = Path(args.out_dir).expanduser().resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
+    if not index_path.exists():
+        if args.build_index_if_missing:
+            _maybe_build_index(index_path=index_path, index_root=index_root)
+        else:
+            raise RuntimeError(
+                "Index file not found. Build it first with:\n"
+                "python3 homeworks/src/day_21_indexing.py\n"
+                "Or run this script with --build-index-if-missing.\n"
+                f"Expected path: {index_path}"
+            )
 
     records = _load_index_records(index_path)
     questions = _load_questions(args.questions_file)
