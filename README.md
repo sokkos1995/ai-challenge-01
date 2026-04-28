@@ -11,6 +11,7 @@
 - `app/agent.py` — сущность агента (`SimpleLLMAgent`): инкапсулирует логику запроса/ответа к LLM API.
 - `app/services/` — сервисный слой: работа с провайдером, памятью, историей чата, персонализацией и token accounting.
 - `app/mcp_servers/` — минимальные MCP-серверы на Python (`Todoist`, `GitHub`) для интеграции внешних API.
+- `docs/` — документация проекта для RAG (`README` + локальные docs-файлы).
 - `app/cli_utils.py` — CLI-утилиты (`parse_args`, `resolve_prompt`, `print_verbose_stats`).
 - `app/cli.py` — основной CLI-поток (single prompt + chat), использует модули пакета `app`.
 - `llm_cli.py` — тонкая точка входа, делегирует запуск в `app.cli.main`.
@@ -69,13 +70,14 @@ echo "$LLM_PROVIDER"
 python3 llm_cli.py "Объясни, что такое LLM в 2 предложениях"
 ```
 
-### MCP-серверы (Todoist и GitHub)
+### MCP-серверы (Todoist, GitHub, Git)
 
 Минимальные MCP-серверы добавлены в `app` и запускаются по `stdio`:
 
 ```bash
 python3 -m app.mcp_servers.todoist_server
 python3 -m app.mcp_servers.github_server
+python3 -m app.mcp_servers.git_server
 ```
 
 Нужные переменные окружения в `.env`:
@@ -88,6 +90,7 @@ GITHUB_TOKEN=github_personal_access_token
 Доступные инструменты:
 - Todoist: `list_tasks`, `create_task`, `complete_task`
 - GitHub: `list_repo_issues`, `create_issue_comment`
+- Git: `get_current_branch`, `get_short_status`
 
 Если аргумент не передан и не задан файл промпта (см. ниже), скрипт использует короткий промпт по умолчанию.
 
@@ -120,6 +123,7 @@ python3 llm_cli.py --chat --rag
 ```
 
 Команды внутри чата:
+- `/help` (или `@help`) — показать список доступных команд;
 - `@rag` — переключить RAG on/off;
 - `@rag on` / `@rag off` — явное переключение;
 - `@rag status` — показать текущий статус.

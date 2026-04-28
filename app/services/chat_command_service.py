@@ -12,6 +12,17 @@ _TASK_COMMAND_USAGE = (
     "state <PLANNING|EXECUTION|VALIDATION|DONE|REJECTED>"
 )
 _INVARIANT_COMMAND_USAGE = "agent> Usage: @invariant show | add <text> | clear"
+_HELP_TEXT = """agent> Available commands:
+- /help: show this help
+- @rag, @rag on, @rag off, @rag status, @rag memory
+- @tokens, @tokens off
+- @summary
+- @personalization show|interview|<key>=<value>
+- @mem show|clear|short note|work|long
+- @task show|pause|resume|reject|approve-plan|reject-plan|validate|plan+|done+|expected|state
+- @invariant show|add <text>|clear
+- @checkpoint, @fork, @switch <1|2>, @branches (for branching strategy)
+"""
 
 
 def _task_command_argument(payload: str, prefix: str, usage: str) -> str:
@@ -19,6 +30,13 @@ def _task_command_argument(payload: str, prefix: str, usage: str) -> str:
     if not value:
         raise ValueError(usage)
     return value
+
+
+def handle_help_command(user_input: str) -> bool:
+    if user_input.strip().lower() not in {"/help", "help", "@help"}:
+        return False
+    print(_HELP_TEXT)
+    return True
 
 
 def handle_tokens_command(

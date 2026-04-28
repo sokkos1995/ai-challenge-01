@@ -7,6 +7,7 @@ from app.cli_utils import print_token_stats, print_verbose_stats, resolve_prompt
 from app.rag_output import format_rag_answer
 from app.services.chat_command_service import (
     handle_branching_command,
+    handle_help_command,
     handle_invariant_command,
     handle_memory_command,
     handle_personalization_command,
@@ -161,6 +162,9 @@ def main() -> None:
                 if user_input.lower() in {"exit", "quit", "q"}:
                     print("Bye!")
                     break
+
+                if handle_help_command(user_input):
+                    continue
 
                 handled, tokens_enabled = handle_tokens_command(
                     user_input=user_input,
