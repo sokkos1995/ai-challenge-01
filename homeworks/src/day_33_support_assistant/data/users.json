@@ -1,0 +1,14 @@
+[
+  {
+    "user_id": "u_001",
+    "name": "Nina",
+    "plan": "pro",
+    "locale": "ru-RU"
+  },
+  {
+    "user_id": "u_002",
+    "name": "Alex",
+    "plan": "free",
+    "locale": "en-US"
+  }
+]

@@ -1,0 +1,14 @@
+[
+  {
+    "ticket_id": "t_1001",
+    "status": "open",
+    "topic": "auth",
+    "last_error": "401 invalid session"
+  },
+  {
+    "ticket_id": "t_1002",
+    "status": "in_progress",
+    "topic": "billing",
+    "last_error": "payment gateway timeout"
+  }
+]
