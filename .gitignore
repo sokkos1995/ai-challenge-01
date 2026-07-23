@@ -1,4 +1,9 @@
+# Локальные секреты и env (не коммитить).
 .env
+.env.local
+.env.*.local
+!.env.example
+
 __pycache__/
 *.db
 workload/*

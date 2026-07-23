@@ -44,19 +44,31 @@
 
 Нельзя отдавать финальный ответ пользователю, минуя шаг `result-verifier`, если задача подразумевала изменения кода, интеграцию API или проверку поведения.
 
+### 3. Перед `git push` — проверка секретов отдельным субагентом
+
+Перед любым `git push` (и перед staging/commit, если готовите push) **обязательно** вызовите субагент `pre-push-secrets`:
+
+1. Основной агент **не пушит**, пока субагент не вернул `OK`.
+2. Субагент смотрит `git status`, staged/unstaged/untracked и дифф на утечки секретов.
+3. Реальные секреты допустимы **только** в файлах `.env*` (кроме `.env.example`) и эти файлы **должны** быть в `.gitignore`.
+4. Для демо в репозиторий коммитьте `.env.example` с плейсхолдерами `...` вместо паролей/токенов.
+5. Если `.env` не в `.gitignore` — сначала добавьте его туда, уберите из индекса (`git rm --cached`), и только потом продолжайте.
+
+Без вердикта `OK` от `pre-push-secrets` выполнять `git push` запрещено.
+
 ---
 
 ## Стек
 
 - **Язык:** Python 3.8+ (в новых файлах предпочитайте `from __future__ import annotations` и синтаксис `str | None`).
 - **Точка входа:** `llm_cli.py` → `app.cli.main`.
-- **LLM API:** OpenRouter / Groq через OpenAI-compatible `chat/completions`; Cursor через Cloud Agents API (`POST /v1/agents` + poll run) — всё на `urllib`, без тяжёлых SDK.
+- **LLM API:** OpenRouter / Groq через OpenAI-compatible `chat/completions` (`urllib`); Cursor через optional `cursor-sdk` (`Agent.prompt`).
 - **Конфиг:** `.env` + `app/config.py` (`load_env_file`, `get_provider_config`).
 - **Хранение:** SQLite (`app/storage.py`) для chat/memory; JSON для homework Todoist (`homeworks/todoist/`).
 - **MCP:** официальный SDK `mcp` + `FastMCP` (`app/mcp_servers/`).
 - **RAG:** локальный индекс JSON + heuristic retrieval/rerank (`app/services/rag_service.py`).
 - **Тесты:** `pytest` в `tests/`.
-- **Зависимости:** `requirements.txt` (`certifi`, `mcp`).
+- **Зависимости:** `requirements.txt` (`certifi`, `mcp`; опционально `cursor-sdk` для `LLM_PROVIDER=cursor`).
 
 Секреты только из env (`.env` не коммитить): `OPENROUTER_API_KEY` / `GROQ_API_KEY` / `CURSOR_API_KEY` / `TODOIST_API_TOKEN` / `GITHUB_TOKEN`.
 
@@ -67,7 +79,7 @@
 ```
 CLI (app/cli.py, llm_cli.py)
   └─ SimpleLLMAgent (app/agent.py)          # фасад, публичный API
-       ├─ ProviderService                   # HTTP к LLM / Cursor Cloud Agents + fallback
+       ├─ ProviderService                   # HTTP к LLM + fallback моделей
        ├─ ChatContextService                # стратегии контекста
        ├─ ChatHistoryService / MemoryService
        ├─ PersonalizationService
@@ -97,7 +109,6 @@ app/                      # основное приложение
   agent.py                # SimpleLLMAgent
   cli.py / cli_utils.py   # CLI
   config.py               # env / provider / paths
-  cursor_cloud_client.py  # Cursor Cloud Agents API (create/poll/archive)
   models.py               # dataclasses
   storage.py              # SQLite persistence API
   task_state_machine.py   # стадии задачи + переходы
@@ -125,7 +136,7 @@ scripts/                  # утилиты (PR AI review и т.п.)
 | Классы | `PascalCase`, сервисы с суффиксом `Service` (`RagService`, `ProviderService`) |
 | Функции / методы | `snake_case`; приватные `_helper` |
 | Константы | `UPPER_SNAKE` (`TASK_STAGE_PLANNING`) |
-| Env-переменные | `LLM_*`, `CURSOR_*`, `TODOIST_*`, `GITHUB_*` |
+| Env-переменные | `LLM_*`, `TODOIST_*`, `GITHUB_*` |
 | Chat-команды | `@name` / `/help` |
 | Homework-скрипты | `homeworks/src/day_NN_*.py`, отчёты `homeworks/day_NN.md` |
 | Тесты | `tests/test_<module>.py`, функции `test_<behavior>` |
@@ -242,9 +253,10 @@ def request_json(*, method: str, url: str, token: str, payload: dict[str, Any] |
 1. **`Any` / отсутствие типов в публичном API** — не пишите `def foo(x):` без аннотаций; `Any` только на границе сырого JSON/HTTP и по возможности сужайте сразу.
 2. **`print` / debug-логи в domain-слое «для прода»** — диагностику в сервисах пишите в `sys.stderr` и только для реальных warnings; отладочный шум не оставлять. CLI `print` — только в `cli` / command handlers.
 3. **Сырой SQL вне storage** — запрещены `sqlite3.connect` + строки запросов внутри `*Service` / agent. Используйте функции из `app/storage.py` (или dedicated storage-класса).
-4. **Секреты в коде** — запрещены хардкод API keys, токенов, `.env` в git.
+4. **Секреты в коде / в git** — запрещены хардкод API keys, токенов; запрещён commit `.env` и любых файлов с реальными секретами. Секреты только в игнорируемых `.env*`; в репо — лишь `.env.example` с `...`.
 5. **God-module** — не пихайте provider + RAG + memory + CLI в один файл; новый функционал → новый `*_service.py` / расширение существующего сервиса по ответственности.
 6. **Ломание grounded RAG** — нельзя убирать обязательные `sources`/`quotes` или отвечать «из головы» при `low_relevance`.
+7. **`git push` без `pre-push-secrets`** — нельзя пушить, пока отдельный субагент не проверил `git status` и отсутствие секретов в коммите/диффе.
 
 ---
 
@@ -325,5 +337,6 @@ python3 -m pytest tests/ -q
 - **Субагент `test-runner`** — изолированный прогон/починка тестов.
 - **Субагент `codebase-explorer`** — широкий поиск по репо перед крупным рефакторингом.
 - **Субагент `result-verifier`** — **обязателен** перед финальным ответом пользователю: проверка, что результат соответствует запросу и работает.
+- **Субагент `pre-push-secrets`** — **обязателен** перед `git push`: проверка `git status` и что в коммит/пуш не попадают секреты (`.env` только в `.gitignore`; демо — `.env.example` с `...`).
 
 Не дублируйте длинные куски README в ответах пользователю — ссылайтесь на файлы и меняйте код точечно.
