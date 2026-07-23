@@ -9,6 +9,7 @@
 - `service.py` — бизнес-логика (`TaskTrackerService`)
 - `ai.py` — LLM-план + обязательный `fallback_plan`
 - `main.py` — CLI / demo
+- `webapp.py` — demo HTTP UI для day_38 Playwright smoke (`demo`/`demo123`)
 
 ## Правила
 
@@ -16,3 +17,4 @@
 - AI-декомпозиция должна переживать отсутствие API-ключа (fallback).
 - Данные по умолчанию: `homeworks/todoist/data/tasks.json`.
 - Новые команды CLI добавлять в `main.py`, логику — в `service.py`.
+- UI smoke: `homeworks/src/day_38_smoke/run_smoke.py` (не живой Todoist API).

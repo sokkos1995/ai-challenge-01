@@ -1,0 +1,13 @@
+---
+description: Post-PR / after-feature QA flow (day_38) — pytest + UI smoke
+alwaysApply: false
+---
+
+# Post-PR QA
+
+Когда пользователь говорит «после PR», «прогони QA», «задеплоил фичу — обнови smoke»:
+
+1. Откройте скилл `.cursor/skills/post-pr-qa/SKILL.md` или делегируйте субагенту `post-pr-qa`.
+2. Режим A: `.venv/bin/python -m homeworks.src.day_38_smoke.run_qa_flow post-pr`
+3. Режим B (новая фича): обновить `scenarios.md` + `run_smoke.py`, затем `run_qa_flow after-feature "..."`
+4. Единый отчёт: `homeworks/artifacts/day_38/qa_report.md`

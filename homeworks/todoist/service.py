@@ -53,6 +53,20 @@ class TaskTrackerService:
         self.storage.save_tasks(updated)
         return changed
 
+    def delete_task(self, task_id: str) -> Task:
+        tasks = self.storage.load_tasks()
+        remaining: list[Task] = []
+        removed: Task | None = None
+        for task in tasks:
+            if task.id == task_id:
+                removed = task
+            else:
+                remaining.append(task)
+        if removed is None:
+            raise RuntimeError(f"Task not found: {task_id}")
+        self.storage.save_tasks(remaining)
+        return removed
+
     def plan_goal_with_ai(self, goal: str) -> list[Task]:
         try:
             plan = generate_plan(goal)
