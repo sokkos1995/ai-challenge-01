@@ -23,7 +23,8 @@
 
 Нужен Python 3.8+ и API-ключ от любого провайдера:
 - `OPENROUTER_API_KEY` (OpenRouter),
-- или `GROQ_API_KEY` (Groq, бесплатный tier).
+- или `GROQ_API_KEY` (Groq, бесплатный tier),
+- или `CURSOR_API_KEY` (Cursor local agent через `cursor-sdk`, Python 3.10+).
 
 Создайте файл `.env` в корне проекта:
 
@@ -39,6 +40,16 @@ EOF
 cat > .env <<'EOF'
 LLM_PROVIDER=groq
 GROQ_API_KEY=ваш_api_ключ
+EOF
+```
+
+или Cursor:
+
+```bash
+pip install cursor-sdk
+cat > .env <<'EOF'
+LLM_PROVIDER=cursor
+CURSOR_API_KEY=ваш_api_ключ
 EOF
 ```
 
@@ -63,7 +74,7 @@ echo "$LLM_PROVIDER"
 - зарегистрироваться на [OpenRouter](https://openrouter.ai/),
 - открыть [Keys](https://openrouter.ai/keys),
 - создать API key.
-
+- для Cursor: [Dashboard → API Keys / Integrations](https://cursor.com/dashboard/integrations), ключ вида `crsr_...`.
 ## Запуск
 
 ```bash
@@ -323,15 +334,15 @@ python3 llm_cli.py \
   "Дай краткое описание LLM"
 ```
 
-По умолчанию:
-- если есть `GROQ_API_KEY`, используется Groq (`llama-3.1-8b-instant`);
-- иначе используется OpenRouter (`openrouter/auto`).
+По умолчанию (`LLM_PROVIDER=auto`):
+- если есть `LLM_API_KEY`, используется OpenRouter;
+- иначе если есть `CURSOR_API_KEY`, используется Cursor (`composer-2.5` через `cursor-sdk`);
+- иначе если есть `GROQ_API_KEY`, используется Groq (`llama-3.1-8b-instant`);
+- иначе используется OpenRouter (`OPENROUTER_API_KEY`).
 
 Если модель недоступна, скрипт автоматически пробует фолбэки:
-- `qwen/qwen-2.5-7b-instruct:free`
-- `google/gemma-2-9b-it:free`
-- `mistralai/mistral-7b-instruct:free`
-
+- OpenRouter: `qwen/qwen-2.5-7b-instruct:free`, `google/gemma-2-9b-it:free`, `mistralai/mistral-7b-instruct:free`
+- Cursor: `composer-2`, `auto`
 Можно переопределить модель и URL:
 
 ```bash

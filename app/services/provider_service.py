@@ -1,11 +1,14 @@
+from __future__ import annotations
+
 import ssl
 import sys
 import time
 import urllib.error
 from typing import Optional
 
+from app.config import cursor_cwd_from_env
 from app.models import AgentRequestOptions
-from app.provider_client import post_chat_completion
+from app.provider_client import post_chat_completion, post_cursor_completion
 
 
 class ProviderService:
@@ -41,14 +44,22 @@ class ProviderService:
             for current_model in self.model_candidates:
                 tried_model = current_model
                 try:
-                    data = post_chat_completion(
-                        self.api_url,
-                        self.api_key,
-                        current_model,
-                        messages,
-                        self.ssl_context,
-                        options,
-                    )
+                    if self.provider == "cursor":
+                        data = post_cursor_completion(
+                            api_key=self.api_key,
+                            model=current_model,
+                            messages=messages,
+                            cwd=cursor_cwd_from_env(),
+                        )
+                    else:
+                        data = post_chat_completion(
+                            self.api_url,
+                            self.api_key,
+                            current_model,
+                            messages,
+                            self.ssl_context,
+                            options,
+                        )
                     response_elapsed_sec = time.perf_counter() - request_started
                     if current_model != self.model_candidates[0]:
                         print(
@@ -71,6 +82,14 @@ class ProviderService:
                             "Try VPN or another provider endpoint (via LLM_PROVIDER / LLM_API_URL)."
                         ) from exc
                     raise RuntimeError(f"HTTP error {exc.code}: {error_text}") from exc
+                except RuntimeError as exc:
+                    if (
+                        self.provider == "cursor"
+                        and current_model != self.model_candidates[-1]
+                        and _is_cursor_model_unavailable(str(exc))
+                    ):
+                        continue
+                    raise
         except ssl.SSLCertVerificationError as exc:
             raise RuntimeError(
                 "SSL certificate verification failed.\n"
@@ -88,6 +107,29 @@ class ProviderService:
                     "export LLM_PROVIDER=groq\n"
                     "export GROQ_API_KEY=your_key"
                 )
+            if self.provider == "cursor":
+                raise RuntimeError(
+                    f"Request failed: no response from Cursor (last model: {tried_model}).\n"
+                    "Install cursor-sdk and set CURSOR_API_KEY:\n"
+                    "pip install cursor-sdk\n"
+                    "export LLM_PROVIDER=cursor\n"
+                    "export CURSOR_API_KEY=your_key"
+                )
             raise RuntimeError("Request failed: no response from provider.")
 
         return data, tried_model, response_elapsed_sec
+
+
+def _is_cursor_model_unavailable(message: str) -> bool:
+    lowered = message.lower()
+    return any(
+        token in lowered
+        for token in (
+            "model_not_found",
+            "does not exist",
+            "unknown model",
+            "invalid model",
+            "model not available",
+            "model unavailable",
+        )
+    )

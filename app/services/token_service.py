@@ -35,6 +35,10 @@ class TokenAccountingService:
             finish_instruction=options.finish_instruction,
             count_tokens=False,
         )
+        if self._provider.provider == "cursor":
+            # Cursor runs a full local agent; dry-run token probes are too expensive.
+            return None
+
         try:
             data = post_chat_completion(
                 api_url=self._provider.api_url,

@@ -18,6 +18,14 @@ GROQ_FALLBACK_MODELS = [
     "llama-3.3-70b-versatile",
 ]
 
+# Cursor has no public OpenAI-compatible chat URL; ProviderService uses cursor-sdk.
+CURSOR_API_URL = "cursor-sdk://local"
+CURSOR_DEFAULT_MODEL = "composer-2.5"
+CURSOR_FALLBACK_MODELS = [
+    "composer-2",
+    "auto",
+]
+
 
 def load_env_file(path: str = ".env") -> None:
     if not os.path.exists(path):
@@ -49,22 +57,32 @@ def build_ssl_context() -> ssl.SSLContext:
         return ssl.create_default_context()
 
 
+def cursor_cwd_from_env() -> str:
+    raw = os.getenv("CURSOR_CWD")
+    stripped = raw.strip() if raw else ""
+    return stripped or os.getcwd()
+
+
 def get_provider_config() -> tuple[str, str, str, list[str]]:
     provider = os.getenv("LLM_PROVIDER", "auto").lower().strip()
     llm_api_key = os.getenv("LLM_API_KEY")
     openrouter_key = os.getenv("OPENROUTER_API_KEY")
     groq_key = os.getenv("GROQ_API_KEY")
+    cursor_key = os.getenv("CURSOR_API_KEY")
 
     if provider == "auto":
         if llm_api_key:
             provider = "openrouter"
+        elif cursor_key:
+            provider = "cursor"
         elif groq_key:
             provider = "groq"
         elif openrouter_key:
             provider = "openrouter"
         else:
             raise RuntimeError(
-                "Error: set one of API keys: LLM_API_KEY, GROQ_API_KEY, or OPENROUTER_API_KEY.\n"
+                "Error: set one of API keys: LLM_API_KEY, CURSOR_API_KEY, "
+                "GROQ_API_KEY, or OPENROUTER_API_KEY.\n"
                 "Tip: if OpenRouter returns 404 for free models, create free GROQ_API_KEY and run again."
             )
 
@@ -82,8 +100,15 @@ def get_provider_config() -> tuple[str, str, str, list[str]]:
         api_url = os.getenv("LLM_API_URL", OPENROUTER_API_URL)
         model = os.getenv("LLM_MODEL", OPENROUTER_DEFAULT_MODEL)
         fallback_raw = os.getenv("LLM_FALLBACK_MODELS", ",".join(OPENROUTER_FALLBACK_MODELS))
+    elif provider == "cursor":
+        api_key = llm_api_key or cursor_key
+        if not api_key:
+            raise RuntimeError("Error: set CURSOR_API_KEY (or LLM_API_KEY with LLM_PROVIDER=cursor).")
+        api_url = os.getenv("LLM_API_URL", CURSOR_API_URL)
+        model = os.getenv("LLM_MODEL", CURSOR_DEFAULT_MODEL)
+        fallback_raw = os.getenv("LLM_FALLBACK_MODELS", ",".join(CURSOR_FALLBACK_MODELS))
     else:
-        raise RuntimeError("Error: LLM_PROVIDER must be auto, openrouter, or groq.")
+        raise RuntimeError("Error: LLM_PROVIDER must be auto, openrouter, groq, or cursor.")
 
     fallback_models = [m.strip() for m in fallback_raw.split(",") if m.strip()]
     model_candidates = [model] + [m for m in fallback_models if m != model]
