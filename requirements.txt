@@ -6,3 +6,6 @@ mcp==1.27.0
 
 # Optional: Cursor local agent provider (LLM_PROVIDER=cursor). Requires Python 3.10+.
 # cursor-sdk
+
+# Optional: day_38 UI smoke (homeworks/src/day_38_smoke/run_smoke.py).
+# playwright

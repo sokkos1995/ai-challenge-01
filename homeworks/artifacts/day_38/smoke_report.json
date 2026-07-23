@@ -1,0 +1,102 @@
+{
+  "generated_at": "2026-07-23T09:07:06Z",
+  "base_url": "http://127.0.0.1:8765",
+  "tooling": "playwright-python (Playwright MCP unavailable in this environment)",
+  "scenarios": [
+    {
+      "id": "S1",
+      "title": "Login",
+      "ok": true,
+      "steps": [
+        {
+          "name": "open_login",
+          "ok": true,
+          "detail": "/login opened",
+          "screenshot": "s1_01_login_page.png"
+        },
+        {
+          "name": "fill_credentials",
+          "ok": true,
+          "detail": "demo/demo123",
+          "screenshot": "s1_02_login_filled.png"
+        },
+        {
+          "name": "submit_login",
+          "ok": true,
+          "detail": "redirect /tasks",
+          "screenshot": "s1_03_logged_in.png"
+        }
+      ],
+      "failure": ""
+    },
+    {
+      "id": "S2",
+      "title": "Create task",
+      "ok": true,
+      "steps": [
+        {
+          "name": "fill_title",
+          "ok": true,
+          "detail": "Smoke task day_38",
+          "screenshot": "s2_01_create_filled.png"
+        },
+        {
+          "name": "submit_create",
+          "ok": true,
+          "detail": "Создано: tsk_1a2d4efb36",
+          "screenshot": "s2_02_created.png"
+        }
+      ],
+      "failure": ""
+    },
+    {
+      "id": "S3",
+      "title": "Verify task in list",
+      "ok": true,
+      "steps": [
+        {
+          "name": "assert_list",
+          "ok": true,
+          "detail": "Smoke task day_38\n[todo]\nУдалить",
+          "screenshot": "s3_01_verified.png"
+        }
+      ],
+      "failure": ""
+    },
+    {
+      "id": "S4",
+      "title": "Delete task",
+      "ok": true,
+      "steps": [
+        {
+          "name": "delete",
+          "ok": true,
+          "detail": "Удалено: tsk_1a2d4efb36",
+          "screenshot": "s4_01_deleted.png"
+        }
+      ],
+      "failure": ""
+    },
+    {
+      "id": "S5",
+      "title": "Logout",
+      "ok": true,
+      "steps": [
+        {
+          "name": "logout",
+          "ok": true,
+          "detail": "/login",
+          "screenshot": "s5_01_logged_out.png"
+        },
+        {
+          "name": "protected_tasks",
+          "ok": true,
+          "detail": "redirect to login",
+          "screenshot": "s5_02_protected.png"
+        }
+      ],
+      "failure": ""
+    }
+  ],
+  "all_passed": true
+}

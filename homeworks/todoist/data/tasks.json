@@ -1,0 +1,16 @@
+[
+  {
+    "id": "tsk_a9f0da56d3",
+    "title": "Собрать метрики релиза",
+    "description": "",
+    "status": "todo",
+    "priority": "high",
+    "created_at": "2026-05-04T10:41:02.480119+00:00",
+    "updated_at": "2026-05-04T10:41:02.480119+00:00",
+    "due_date": null,
+    "source": "manual",
+    "tags": [
+      "manual"
+    ]
+  }
+]

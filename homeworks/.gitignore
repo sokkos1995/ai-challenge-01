@@ -1,1 +1,5 @@
 artifacts/*
+!artifacts/day_38/
+!artifacts/day_38/**
+artifacts/day_38/smoke_tasks.json
+artifacts/day_38/webapp_stderr.log
