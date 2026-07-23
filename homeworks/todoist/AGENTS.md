@@ -18,3 +18,4 @@
 - Данные по умолчанию: `homeworks/todoist/data/tasks.json`.
 - Новые команды CLI добавлять в `main.py`, логику — в `service.py`.
 - UI smoke: `homeworks/src/day_38_smoke/run_smoke.py` (не живой Todoist API).
+- Единый QA после PR/фичи: `homeworks/src/day_38_smoke/run_qa_flow.py` + скилл `post-pr-qa`.

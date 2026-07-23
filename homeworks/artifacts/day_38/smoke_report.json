@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-23T09:07:06Z",
+  "generated_at": "2026-07-23T09:16:06Z",
   "base_url": "http://127.0.0.1:8765",
   "tooling": "playwright-python (Playwright MCP unavailable in this environment)",
   "scenarios": [
@@ -43,7 +43,7 @@
         {
           "name": "submit_create",
           "ok": true,
-          "detail": "Создано: tsk_1a2d4efb36",
+          "detail": "Создано: tsk_4cf3514af2",
           "screenshot": "s2_02_created.png"
         }
       ],
@@ -57,8 +57,22 @@
         {
           "name": "assert_list",
           "ok": true,
-          "detail": "Smoke task day_38\n[todo]\nУдалить",
+          "detail": "Smoke task day_38\n[todo]\nЗавершить\nУдалить",
           "screenshot": "s3_01_verified.png"
+        }
+      ],
+      "failure": ""
+    },
+    {
+      "id": "S6",
+      "title": "Complete task",
+      "ok": true,
+      "steps": [
+        {
+          "name": "complete",
+          "ok": true,
+          "detail": "Завершено: tsk_4cf3514af2",
+          "screenshot": "s6_01_completed.png"
         }
       ],
       "failure": ""
@@ -71,7 +85,7 @@
         {
           "name": "delete",
           "ok": true,
-          "detail": "Удалено: tsk_1a2d4efb36",
+          "detail": "Удалено: tsk_4cf3514af2",
           "screenshot": "s4_01_deleted.png"
         }
       ],

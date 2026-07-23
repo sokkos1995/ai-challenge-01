@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-07-23T09:11:05Z",
+  "generated_at": "2026-07-23T09:16:06Z",
   "trigger": "after-feature",
-  "all_passed": false,
+  "all_passed": true,
   "level1": {
     "ok": true,
     "exit_code": 0,
     "command": "/Users/konstantinsokolov/dev/projects/pet_projects/ai_challenge/hw/hw01/.venv/bin/python -m pytest tests/test_todoist_hw_service.py tests/test_personalization_service.py tests/test_storage.py -q",
-    "stdout": "...........                                                              [100%]\n11 passed in 0.07s",
+    "stdout": "...........                                                              [100%]\n11 passed in 0.05s",
     "stderr": "",
     "tests": [
       "tests/test_todoist_hw_service.py",
@@ -15,11 +15,11 @@
     ]
   },
   "level2": {
-    "ok": false,
-    "exit_code": 1,
+    "ok": true,
+    "exit_code": 0,
     "command": "/Users/konstantinsokolov/dev/projects/pet_projects/ai_challenge/hw/hw01/.venv/bin/python -m homeworks.src.day_38_smoke.run_smoke",
-    "stdout": "",
-    "stderr": "Traceback (most recent call last):\n  File \"<frozen runpy>\", line 203, in _run_module_as_main\n  File \"<frozen runpy>\", line 88, in _run_code\n  File \"/Users/konstantinsokolov/dev/projects/pet_projects/ai_challenge/hw/hw01/homeworks/src/day_38_smoke/run_smoke.py\", line 290, in <module>\n    raise SystemExit(main())\n                     ~~~~^^\n  File \"/Users/konstantinsokolov/dev/projects/pet_projects/ai_challenge/hw/hw01/homeworks/src/day_38_smoke/run_smoke.py\", line 275, in main\n    results = run_smoke()\n  File \"/Users/konstantinsokolov/dev/projects/pet_projects/ai_challenge/hw/hw01/homeworks/src/day_38_smoke/run_smoke.py\", line 70, in run_smoke\n    browser = p.chromium.launch(headless=True)\n  File \"/Users/konstantinsokolov/dev/projects/pet_projects/ai_challenge/hw/hw01/.venv/lib/python3.14/site-packages/playwright/sync_api/_generated.py\", line 16515, in launch\n    self._sync(\n    ~~~~~~~~~~^\n        self._impl_obj.launch(\n        ^^^^^^^^^^^^^^^^^^^^^^\n    ...<17 lines>...\n        )\n        ^\n    )\n    ^\n  File \"/Users/konstantinsokolov/dev/projects/pet_projects/ai_challenge/hw/hw01/.venv/lib/python3.14/site-packages/playwright/_impl/_sync_base.py\", line 115, in _sync\n    return task.result()\n           ~~~~~~~~~~~^^\n  File \"/Users/konstantinsokolov/dev/projects/pet_projects/ai_challenge/hw/hw01/.venv/lib/python3.14/site-packages/playwright/_impl/_browser_type.py\", line 97, in launch\n    await self._channel.send(\n        \"launch\", TimeoutSettings.launch_timeout, params\n    )\n  File \"/Users/konstantinsokolov/dev/projects/pet_projects/ai_challenge/hw/hw01/.venv/lib/python3.14/site-packages/playwright/_impl/_connection.py\", line 69, in send\n    return await self._connection.wrap_api_call(\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    ...<3 lines>...\n    )\n    ^\n  File \"/Users/konstantinsokolov/dev/projects/pet_projects/ai_challenge/hw/hw01/.venv/lib/python3.14/site-packages/playwright/_impl/_connection.py\", line 563, in wrap_api_call\n    raise rewrite_error(error, f\"{parsed_st['apiName']}: {error}\") from None\nplaywright._impl._errors.Error: BrowserType.launch: Executable doesn't exist at /var/folders/zj/dc9pdlqn7dzg265fcz64nl_00000gn/T/cursor-sandbox-cache/0986fcda96ee3cf5363058a0766c060e/playwright/chromium_headless_shell-1228/chrome-headless-shell-mac-arm64/chrome-headless-shell\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     playwright install                                     ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝",
+    "stdout": "/Users/konstantinsokolov/dev/projects/pet_projects/ai_challenge/hw/hw01/homeworks/artifacts/day_38/smoke_report.md\nPASS",
+    "stderr": "",
     "smoke_all_passed": true,
     "scenarios": [
       {
@@ -62,7 +62,7 @@
           {
             "name": "submit_create",
             "ok": true,
-            "detail": "Создано: tsk_1a2d4efb36",
+            "detail": "Создано: tsk_4cf3514af2",
             "screenshot": "s2_02_created.png"
           }
         ],
@@ -76,8 +76,22 @@
           {
             "name": "assert_list",
             "ok": true,
-            "detail": "Smoke task day_38\n[todo]\nУдалить",
+            "detail": "Smoke task day_38\n[todo]\nЗавершить\nУдалить",
             "screenshot": "s3_01_verified.png"
+          }
+        ],
+        "failure": ""
+      },
+      {
+        "id": "S6",
+        "title": "Complete task",
+        "ok": true,
+        "steps": [
+          {
+            "name": "complete",
+            "ok": true,
+            "detail": "Завершено: tsk_4cf3514af2",
+            "screenshot": "s6_01_completed.png"
           }
         ],
         "failure": ""
@@ -90,7 +104,7 @@
           {
             "name": "delete",
             "ok": true,
-            "detail": "Удалено: tsk_1a2d4efb36",
+            "detail": "Удалено: tsk_4cf3514af2",
             "screenshot": "s4_01_deleted.png"
           }
         ],

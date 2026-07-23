@@ -50,7 +50,7 @@
 
 1. В `webapp.py` добавлен POST `/tasks/complete` + кнопка `data-testid=task-complete`.
 2. Обновлены `scenarios.md` (S6) и `run_smoke.py`.
-3. Полный прогон `run_qa_flow after-feature "Завершить задачу в UI"`.
+3. Полный прогон `run_qa_flow after-feature "Завершить задачу в UI"` → **Overall PASS** (L1 11 passed, S1–S6 PASS).
 
 ---
 
