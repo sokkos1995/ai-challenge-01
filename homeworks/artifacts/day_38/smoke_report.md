@@ -1,6 +1,6 @@
 # Day 38 UI smoke report
 
-Generated: `2026-07-23T09:07:06Z`
+Generated: `2026-07-23T09:16:06Z`
 Base URL: `http://127.0.0.1:8765`
 Tooling: Playwright Python (MCP Playwright / Claude in Mobile недоступны в workspace)
 
@@ -17,17 +17,22 @@ Tooling: Playwright Python (MCP Playwright / Claude in Mobile недоступн
 ## S2 — Create task: PASS
 - [ok] fill_title: Smoke task day_38 ([screenshot](s2_01_create_filled.png))
   ![fill_title](s2_01_create_filled.png)
-- [ok] submit_create: Создано: tsk_1a2d4efb36 ([screenshot](s2_02_created.png))
+- [ok] submit_create: Создано: tsk_4cf3514af2 ([screenshot](s2_02_created.png))
   ![submit_create](s2_02_created.png)
 
 ## S3 — Verify task in list: PASS
 - [ok] assert_list: Smoke task day_38
 [todo]
+Завершить
 Удалить ([screenshot](s3_01_verified.png))
   ![assert_list](s3_01_verified.png)
 
+## S6 — Complete task: PASS
+- [ok] complete: Завершено: tsk_4cf3514af2 ([screenshot](s6_01_completed.png))
+  ![complete](s6_01_completed.png)
+
 ## S4 — Delete task: PASS
-- [ok] delete: Удалено: tsk_1a2d4efb36 ([screenshot](s4_01_deleted.png))
+- [ok] delete: Удалено: tsk_4cf3514af2 ([screenshot](s4_01_deleted.png))
   ![delete](s4_01_deleted.png)
 
 ## S5 — Logout: PASS
