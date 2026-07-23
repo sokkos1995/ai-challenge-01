@@ -88,4 +88,23 @@ def test_list_tasks_passes_filter_query_to_api(monkeypatch) -> None:
 
     todoist_server.list_tasks(limit=0, filter_query="today | overdue")
 
-    assert calls[0]["query"]["filter"] == "today | overdue"
+    assert calls[0]["path"] == "/tasks/filter"
+    assert calls[0]["query"]["query"] == "today | overdue"
+    assert "filter" not in calls[0]["query"]
+
+
+def test_list_tasks_without_filter_uses_tasks_endpoint(monkeypatch) -> None:
+    monkeypatch.setattr(todoist_server, "_todoist_token", lambda: "token")
+    calls: list[dict] = []
+
+    def _fake_request(**kwargs):
+        calls.append(kwargs)
+        return {"results": [], "next_cursor": ""}
+
+    monkeypatch.setattr(todoist_server, "_todoist_request", _fake_request)
+
+    todoist_server.list_tasks(limit=0)
+
+    assert calls[0]["path"] == "/tasks"
+    assert "query" not in calls[0]["query"]
+    assert "filter" not in calls[0]["query"]

@@ -98,12 +98,14 @@ def _list_all_tasks(token: str, limit: int, filter_query: str = "") -> list[dict
     while True:
         remaining = max(0, capped_limit - len(aggregated))
         page_limit = 100 if unlimited else max(1, min(100, remaining))
+        # v1: filter moved off GET /tasks onto GET /tasks/filter?query=...
+        path = "/tasks/filter" if clean_filter else "/tasks"
         query = {"limit": str(page_limit)}
         if clean_filter:
-            query["filter"] = clean_filter
+            query["query"] = clean_filter
         if cursor:
             query["cursor"] = cursor
-        payload = _todoist_request(method="GET", path="/tasks", token=token, query=query)
+        payload = _todoist_request(method="GET", path=path, token=token, query=query)
         page_items = _unwrap_tasks(payload)
         aggregated.extend(page_items)
         if not unlimited and len(aggregated) >= capped_limit:
