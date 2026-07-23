@@ -1,0 +1,15 @@
+---
+description: Конвенции Python для app/services в hw01
+globs: app/**/*.py
+alwaysApply: false
+---
+
+# Конвенции app/
+
+- Новая доменная логика → `app/services/<name>_service.py`, класс `<Name>Service`.
+- Общие DTO/состояние → `app/models.py` (dataclasses) или локальный `@dataclass` рядом с сервисом, если он приватный.
+- HTTP к провайдеру — только в `ProviderService` / `provider_client.py`; не вызывайте urllib из посторонних сервисов.
+- MCP-инструменты живут только в `app/mcp_servers/`; переиспользуйте `_http.request_json`.
+- Типизируйте публичные методы; `Any` — только на границе сырого JSON/HTTP.
+- Ошибки: `raise RuntimeError("...") from exc` с понятным текстом.
+- Не добавляйте `print` в core-сервисы, кроме осознанных warnings в `sys.stderr` (как в `ProviderService` / сжатии истории).
