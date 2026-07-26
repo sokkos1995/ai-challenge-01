@@ -1,0 +1,115 @@
+{
+  "label": "day40-local",
+  "model": "qwen2.5-coder:7b",
+  "note": "Same Done criteria as cloud pool; executed via Ollama harness (no Todoist recreate)",
+  "tasks": [
+    {
+      "key": "broken_avg",
+      "type": "bug",
+      "path": "broken_avg.py",
+      "done": "average([]) is None; average([1,3])==2; no ZeroDivisionError"
+    },
+    {
+      "key": "broken_slice",
+      "type": "bug",
+      "path": "broken_slice.py",
+      "done": "last_n([1,2,3,4,5],2)==[4,5]; last_n([1,2],5)==[1,2]"
+    },
+    {
+      "key": "broken_append",
+      "type": "bug",
+      "path": "broken_append.py",
+      "done": "append_item('a')==['a'] and append_item('b')==['b'] (no shared default)"
+    },
+    {
+      "key": "fizzbuzz",
+      "type": "feature",
+      "path": "fizzbuzz.py",
+      "done": "fizzbuzz(3)==['1','2','Fizz']; CLI without N prints usage and exit 2; main(['5']) prints 1..Buzz"
+    },
+    {
+      "key": "wordcount",
+      "type": "feature",
+      "path": "wordcount.py",
+      "done": "count_text + argparse CLI with optional path and --help; words/lines/chars"
+    },
+    {
+      "key": "json_pretty",
+      "type": "feature",
+      "path": "json_pretty.py",
+      "done": "pretty-print JSON indent=2; invalid JSON -> stderr + exit 1"
+    },
+    {
+      "key": "temp_convert",
+      "type": "feature",
+      "path": "temp_convert.py",
+      "done": "c2f/f2c one number round 1 decimal; else usage exit 2"
+    },
+    {
+      "key": "csv_to_md",
+      "type": "feature",
+      "path": "csv_to_md.py",
+      "done": "first row header; GitHub markdown table to stdout"
+    },
+    {
+      "key": "password_gen",
+      "type": "feature",
+      "path": "password_gen.py",
+      "done": "--length N default 16; length<8 -> exit 2; letters+digits+punctuation"
+    },
+    {
+      "key": "anagrams",
+      "type": "feature",
+      "path": "anagrams.py",
+      "done": "two strings -> YES/NO ignoring case and spaces"
+    },
+    {
+      "key": "monolith_stats",
+      "type": "refactor",
+      "path": "monolith_stats.py",
+      "done": "public mean/median/mode + CLI preserving stats behavior"
+    },
+    {
+      "key": "validate_email",
+      "type": "refactor",
+      "path": "validate_email.py",
+      "done": "is_valid_email(s)->bool used by CLI; no duplicated regex in main"
+    },
+    {
+      "key": "student_grade",
+      "type": "refactor",
+      "path": "student_grade.py",
+      "done": "@dataclass Student with average() method; CLI prints name and average"
+    },
+    {
+      "key": "test_fizzbuzz",
+      "type": "test",
+      "path": "tests/test_day40_local_fizzbuzz.py",
+      "done": "pytest file with >=3 cases for day_40_local/fizzbuzz.py green"
+    },
+    {
+      "key": "test_wordcount",
+      "type": "test",
+      "path": "tests/test_day40_local_wordcount.py",
+      "done": "pytest covers file + stdin for wordcount green"
+    },
+    {
+      "key": "test_bugfixes",
+      "type": "test",
+      "path": "tests/test_day40_local_bugfixes.py",
+      "done": "pytest covers average/last_n/append_item green"
+    },
+    {
+      "key": "readme",
+      "type": "docs",
+      "path": "README.md",
+      "done": "markdown list of scripts with one example command each"
+    },
+    {
+      "key": "typing_cheatsheet",
+      "type": "docs",
+      "path": "typing_cheatsheet.md",
+      "done": ">=8 typing annotation examples (list/dict/Optional/Union/Callable/TypedDict/...)"
+    }
+  ]
+}

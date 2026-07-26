@@ -1,0 +1,25 @@
+{
+  "run": 2,
+  "model": "cursor-cloud+execution-loop-rule",
+  "started_at_unix": 1785040848,
+  "finished_at_unix": 1785040946,
+  "elapsed_seconds": 98,
+  "elapsed_minutes": 2,
+  "tasks_total": 18,
+  "tasks_completed_streak": 18,
+  "broke_on_task": null,
+  "broke_reason": null,
+  "first_try_percent": 100,
+  "avg_minutes_per_task": 0.091,
+  "commits": 18,
+  "branch": "hw-40-execution-loop",
+  "rule_added": ".cursor/rules/execution-loop.mdc",
+  "vs_run1": {
+    "run1_minutes": 3,
+    "run2_minutes": 2,
+    "run1_streak": 18,
+    "run2_streak": 18,
+    "streak_delta": 0,
+    "note": "Both runs 18/18; run2 avoided MCP complete_task auto-review stalls via local fallback"
+  }
+}

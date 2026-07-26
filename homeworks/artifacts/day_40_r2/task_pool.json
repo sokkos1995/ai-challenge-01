@@ -1,0 +1,96 @@
+{
+  "label": "day40-r2",
+  "created_count": 18,
+  "tasks": [
+    {
+      "id": "6h8HXf6VgVr6p5Hf",
+      "type": "bug",
+      "content": "[day40-r2][bug] Fix ZeroDivision in homeworks/artifacts/day_40_r2/broken_avg.py — Done: empty list → None"
+    },
+    {
+      "id": "6h8HXf8vRJ48CX9f",
+      "type": "bug",
+      "content": "[day40-r2][bug] Fix off-by-one in homeworks/artifacts/day_40_r2/broken_slice.py — Done: last_n returns exactly n"
+    },
+    {
+      "id": "6h8HXfF3pcMv4gh7",
+      "type": "bug",
+      "content": "[day40-r2][bug] Fix mutable default in homeworks/artifacts/day_40_r2/broken_append.py — Done: calls do not share list"
+    },
+    {
+      "id": "6h8HXfJ86RmJc42f",
+      "type": "feature",
+      "content": "[day40-r2][feature] FizzBuzz CLI homeworks/artifacts/day_40_r2/fizzbuzz.py — Done: print 1..N; no N → usage exit 2"
+    },
+    {
+      "id": "6h8HXfR4mmF9VVJ7",
+      "type": "feature",
+      "content": "[day40-r2][feature] Wordcount homeworks/artifacts/day_40_r2/wordcount.py — Done: words/lines/chars; --help works"
+    },
+    {
+      "id": "6h8HXfQmpfhfcQv7",
+      "type": "feature",
+      "content": "[day40-r2][feature] JSON pretty homeworks/artifacts/day_40_r2/json_pretty.py — Done: indent=2; bad JSON → stderr exit 1"
+    },
+    {
+      "id": "6h8HXfWQhX4VJm97",
+      "type": "feature",
+      "content": "[day40-r2][feature] Temp convert homeworks/artifacts/day_40_r2/temp_convert.py — Done: c2f|f2c one number; else usage; 1 decimal"
+    },
+    {
+      "id": "6h8HXfcfv6MhcQvf",
+      "type": "feature",
+      "content": "[day40-r2][feature] CSV→MD homeworks/artifacts/day_40_r2/csv_to_md.py — Done: header row + GFM table"
+    },
+    {
+      "id": "6h8HXfhvghmmJ5C7",
+      "type": "feature",
+      "content": "[day40-r2][feature] Password gen homeworks/artifacts/day_40_r2/password_gen.py — Done: --length N default 16; <8 → exit 2"
+    },
+    {
+      "id": "6h8HXfhRfv897XGf",
+      "type": "feature",
+      "content": "[day40-r2][feature] Anagrams homeworks/artifacts/day_40_r2/anagrams.py — Done: two strings → YES/NO ignore case/spaces"
+    },
+    {
+      "id": "6h8HXfpxrxg3G35f",
+      "type": "refactor",
+      "content": "[day40-r2][refactor] Split homeworks/artifacts/day_40_r2/monolith_stats.py into mean/median/mode — Done: public funcs + CLI"
+    },
+    {
+      "id": "6h8HXfwMCq3C54m7",
+      "type": "refactor",
+      "content": "[day40-r2][refactor] Extract is_valid_email in homeworks/artifacts/day_40_r2/validate_email.py — Done: helper + CLI"
+    },
+    {
+      "id": "6h8HXg4FrCHPQpFf",
+      "type": "refactor",
+      "content": "[day40-r2][refactor] Dataclass Student in homeworks/artifacts/day_40_r2/student_grade.py — Done: average() method + CLI"
+    },
+    {
+      "id": "6h8HXg4MvfqxjHq7",
+      "type": "test",
+      "content": "[day40-r2][test] Pytest tests/test_day40_r2_fizzbuzz.py — Done: ≥3 cases green"
+    },
+    {
+      "id": "6h8HXg4xxmwWgHWf",
+      "type": "test",
+      "content": "[day40-r2][test] Pytest tests/test_day40_r2_wordcount.py — Done: file+stdin green"
+    },
+    {
+      "id": "6h8HXg9mPH7PFJvf",
+      "type": "test",
+      "content": "[day40-r2][test] Pytest tests/test_day40_r2_bugfixes.py — Done: avg/slice/append green"
+    },
+    {
+      "id": "6h8HXgGJmx86g6V7",
+      "type": "docs",
+      "content": "[day40-r2][docs] README homeworks/artifacts/day_40_r2/README.md — Done: script list + one-line run each"
+    },
+    {
+      "id": "6h8HXgFpRvrCfP87",
+      "type": "docs",
+      "content": "[day40-r2][docs] Typing cheatsheet homeworks/artifacts/day_40_r2/typing_cheatsheet.md — Done: ≥8 annotation examples"
+    }
+  ]
+}
