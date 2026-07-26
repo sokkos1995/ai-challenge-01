@@ -1,0 +1,29 @@
+[
+  {
+    "model": "qwen2.5-coder:7b",
+    "feature_elapsed_sec": 23.51,
+    "feature_eval_count": 201,
+    "agent_elapsed_sec": 11.85,
+    "agent_eval_count": 138,
+    "feature_error": null,
+    "agent_error": null
+  },
+  {
+    "model": "deepseek-coder:6.7b",
+    "feature_elapsed_sec": 51.79,
+    "feature_eval_count": 634,
+    "agent_elapsed_sec": 29.52,
+    "agent_eval_count": 420,
+    "feature_error": null,
+    "agent_error": null
+  },
+  {
+    "model": "qwen2.5-coder:3b",
+    "feature_elapsed_sec": 14.64,
+    "feature_eval_count": 321,
+    "agent_elapsed_sec": 9.0,
+    "agent_eval_count": 260,
+    "feature_error": null,
+    "agent_error": null
+  }
+]

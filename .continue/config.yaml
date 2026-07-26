@@ -1,0 +1,62 @@
+name: hw01 Local Boost
+version: 1.0.0
+schema: v1
+
+models:
+  - name: Qwen2.5-Coder 7B (chat)
+    provider: ollama
+    model: qwen2.5-coder:7b
+    apiBase: http://localhost:11434
+    roles:
+      - chat
+      - edit
+      - apply
+    defaultCompletionOptions:
+      temperature: 0.2
+      topP: 0.9
+      # Continue: бюджет входа ≈ contextLength − maxTokens; 8192 мало при rules + open files
+      contextLength: 16384
+      maxTokens: 1024
+
+  - name: DeepSeek Coder 6.7B (chat)
+    provider: ollama
+    model: deepseek-coder:6.7b
+    apiBase: http://localhost:11434
+    roles:
+      - chat
+      - edit
+      - apply
+    defaultCompletionOptions:
+      temperature: 0.2
+      topP: 0.9
+      contextLength: 16384
+      maxTokens: 1024
+
+  - name: Qwen2.5-Coder 3B (chat)
+    provider: ollama
+    model: qwen2.5-coder:3b
+    apiBase: http://localhost:11434
+    roles:
+      - chat
+      - edit
+      - apply
+    defaultCompletionOptions:
+      temperature: 0.2
+      topP: 0.9
+      contextLength: 16384
+      maxTokens: 1024
+
+  - name: Qwen2.5-Coder 1.5B (autocomplete)
+    provider: ollama
+    model: qwen2.5-coder:1.5b
+    apiBase: http://localhost:11434
+    roles:
+      - autocomplete
+    defaultCompletionOptions:
+      temperature: 0.1
+      topP: 0.9
+    autocompleteOptions:
+      debounceDelay: 250
+      maxPromptTokens: 1024
+      onlyMyCode: true
+      multilineCompletions: auto
