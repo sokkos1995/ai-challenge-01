@@ -5,3 +5,5 @@ artifacts/day_38/smoke_tasks.json
 artifacts/day_38/webapp_stderr.log
 !artifacts/day_39/
 !artifacts/day_39/**
+!artifacts/day_40/
+!artifacts/day_40/**

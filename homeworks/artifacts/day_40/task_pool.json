@@ -1,0 +1,97 @@
+{
+  "label": "day40",
+  "created_count": 18,
+  "skipped_count": 0,
+  "tasks": [
+    {
+      "id": "6h8HWJq8Hg8vVP37",
+      "content": "[day40][feature] FizzBuzz CLI: скрипт homeworks/artifacts/day_40/fizzbuzz.py — Done: `python3 … N` печатает 1..N по правилам FizzBuzz; без N → usage и exit 2",
+      "url": null
+    },
+    {
+      "id": "6h8HWJmC49qFqFg7",
+      "content": "[day40][feature] Word counter: homeworks/artifacts/day_40/wordcount.py — Done: считает слова/строки/символы из файла или stdin; `--help` работает",
+      "url": null
+    },
+    {
+      "id": "6h8HWJvmgvF6W4Mf",
+      "content": "[day40][feature] JSON pretty-printer: homeworks/artifacts/day_40/json_pretty.py — Done: читает JSON из файла/stdin, печатает indent=2; невалидный JSON → stderr + exit 1",
+      "url": null
+    },
+    {
+      "id": "6h8HWJxRXfM95g37",
+      "content": "[day40][feature] Temp converter: homeworks/artifacts/day_40/temp_convert.py — Done: `c2f`/`f2c` с одним числом; иначе usage; округление до 1 знака",
+      "url": null
+    },
+    {
+      "id": "6h8HWM66CV39CG77",
+      "content": "[day40][feature] CSV → markdown table: homeworks/artifacts/day_40/csv_to_md.py — Done: первая строка = header; таблица GitHub-markdown в stdout",
+      "url": null
+    },
+    {
+      "id": "6h8HWM8vQ6GPcXqf",
+      "content": "[day40][bug] Исправить деление на ноль в homeworks/artifacts/day_40/broken_avg.py — Done: пустой список → None; тесты/ручной прогон без ZeroDivisionError",
+      "url": null
+    },
+    {
+      "id": "6h8HWM79vHj29697",
+      "content": "[day40][bug] Починить off-by-one в homeworks/artifacts/day_40/broken_slice.py — Done: last_n(items, n) возвращает ровно n последних (или все, если короче)",
+      "url": null
+    },
+    {
+      "id": "6h8HWM9Qc85vRC6f",
+      "content": "[day40][bug] Исправить mutable default в homeworks/artifacts/day_40/broken_append.py — Done: повторные вызовы append_item не шарят один и тот же list",
+      "url": null
+    },
+    {
+      "id": "6h8HWMHW3MvvgMhf",
+      "content": "[day40][refactor] Разбить homeworks/artifacts/day_40/monolith_stats.py на функции mean/median/mode — Done: публичные функции + `if __name__` CLI; поведение сохранено",
+      "url": null
+    },
+    {
+      "id": "6h8HWMQCmxc88Mvf",
+      "content": "[day40][refactor] Вынести валидацию в homeworks/artifacts/day_40/validate_email.py — Done: `is_valid_email(s) -> bool` + CLI; без дублирования regex в main",
+      "url": null
+    },
+    {
+      "id": "6h8HWMMWJChW8WC7",
+      "content": "[day40][test] Pytest для FizzBuzz: tests/test_day40_fizzbuzz.py — Done: ≥3 кейса; `pytest tests/test_day40_fizzbuzz.py -q` зелёный",
+      "url": null
+    },
+    {
+      "id": "6h8HWMWQH92WFww7",
+      "content": "[day40][test] Pytest для wordcount: tests/test_day40_wordcount.py — Done: файл и stdin; `pytest … -q` зелёный",
+      "url": null
+    },
+    {
+      "id": "6h8HWMWV77h6M8r7",
+      "content": "[day40][test] Pytest для broken_* фиксов: tests/test_day40_bugfixes.py — Done: avg/slice/append покрыты; pytest зелёный",
+      "url": null
+    },
+    {
+      "id": "6h8HWMfwVX8p74Cf",
+      "content": "[day40][docs] README для артефактов: homeworks/artifacts/day_40/README.md — Done: список скриптов + пример запуска каждого одной командой",
+      "url": null
+    },
+    {
+      "id": "6h8HWMpxRH298Xcf",
+      "content": "[day40][docs] Шпаргалка типов: homeworks/artifacts/day_40/typing_cheatsheet.md — Done: ≥8 примеров аннотаций (list/dict/Optional/Union/Callable/TypedDict/…)",
+      "url": null
+    },
+    {
+      "id": "6h8HWMmpgmvg5Jv7",
+      "content": "[day40][feature] Генератор паролей: homeworks/artifacts/day_40/password_gen.py — Done: `--length N` (default 16), буквы+цифры+символы; length<8 → exit 2",
+      "url": null
+    },
+    {
+      "id": "6h8HWMqWGRC8QHJf",
+      "content": "[day40][feature] Анаграммы: homeworks/artifacts/day_40/anagrams.py — Done: две строки → YES/NO (игнор регистра и пробелов)",
+      "url": null
+    },
+    {
+      "id": "6h8HWMxg3G6RQgv7",
+      "content": "[day40][refactor] dataclasses вместо dict в homeworks/artifacts/day_40/student_grade.py — Done: `@dataclass Student`; average() метод; CLI печатает имя и средний балл",
+      "url": null
+    }
+  ]
+}
