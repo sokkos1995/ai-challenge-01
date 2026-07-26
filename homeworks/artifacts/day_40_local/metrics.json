@@ -1,0 +1,221 @@
+{
+  "run": 3,
+  "model": "qwen2.5-coder:7b",
+  "elapsed_seconds": 287.9,
+  "elapsed_minutes": 5,
+  "tasks_total": 18,
+  "tasks_completed_streak": 3,
+  "tasks_ok_total": 9,
+  "broke_on_task": "fizzbuzz",
+  "broke_reason": "Traceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    assert m.main(['5'])==0\n           ^^^^^^^^^^^^^^^^\nAssertionError\n",
+  "first_try_percent": 50.0,
+  "avg_minutes_per_task": 0.267,
+  "results": [
+    {
+      "n": 1,
+      "key": "broken_avg",
+      "kind": "bug",
+      "ok": true,
+      "first_try": true,
+      "gen_sec": 17.91,
+      "eval_count": 46,
+      "error": null,
+      "path": "homeworks/artifacts/day_40_local/broken_avg.py"
+    },
+    {
+      "n": 2,
+      "key": "broken_slice",
+      "kind": "bug",
+      "ok": true,
+      "first_try": true,
+      "gen_sec": 4.87,
+      "eval_count": 62,
+      "error": null,
+      "path": "homeworks/artifacts/day_40_local/broken_slice.py"
+    },
+    {
+      "n": 3,
+      "key": "broken_append",
+      "kind": "bug",
+      "ok": true,
+      "first_try": true,
+      "gen_sec": 3.4,
+      "eval_count": 41,
+      "error": null,
+      "path": "homeworks/artifacts/day_40_local/broken_append.py"
+    },
+    {
+      "n": 4,
+      "key": "fizzbuzz",
+      "kind": "feature",
+      "ok": false,
+      "first_try": false,
+      "gen_sec": 14.67,
+      "eval_count": 233,
+      "error": "Traceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    assert m.main(['5'])==0\n           ^^^^^^^^^^^^^^^^\nAssertionError\n",
+      "path": "homeworks/artifacts/day_40_local/fizzbuzz.py"
+    },
+    {
+      "n": 5,
+      "key": "wordcount",
+      "kind": "feature",
+      "ok": true,
+      "first_try": true,
+      "gen_sec": 13.71,
+      "eval_count": 219,
+      "error": null,
+      "path": "homeworks/artifacts/day_40_local/wordcount.py"
+    },
+    {
+      "n": 6,
+      "key": "json_pretty",
+      "kind": "feature",
+      "ok": "Invalid JSON: Expecting value: line 1 column 1 (char 0)\n",
+      "first_try": "Invalid JSON: Expecting value: line 1 column 1 (char 0)\n",
+      "gen_sec": 8.48,
+      "eval_count": 130,
+      "error": null,
+      "path": "homeworks/artifacts/day_40_local/json_pretty.py"
+    },
+    {
+      "n": 7,
+      "key": "temp_convert",
+      "kind": "feature",
+      "ok": true,
+      "first_try": true,
+      "gen_sec": 15.47,
+      "eval_count": 249,
+      "error": null,
+      "path": "homeworks/artifacts/day_40_local/temp_convert.py"
+    },
+    {
+      "n": 8,
+      "key": "csv_to_md",
+      "kind": "feature",
+      "ok": false,
+      "first_try": false,
+      "gen_sec": 13.62,
+      "eval_count": 218,
+      "error": "Traceback (most recent call last):\n  File \"/Users/konstantinsokolov/dev/projects/pet_projects/ai_challenge/hw/hw01/homeworks/artifacts/day_40_local/csv_to_md.py\", line 38, in <module>\n    sys.exit(main())\n    ^^^\nNameError: name 'sys' is not defined. Did you forget to import 'sys'?\n",
+      "path": "homeworks/artifacts/day_40_local/csv_to_md.py"
+    },
+    {
+      "n": 9,
+      "key": "password_gen",
+      "kind": "feature",
+      "ok": true,
+      "first_try": true,
+      "gen_sec": 11.47,
+      "eval_count": 186,
+      "error": null,
+      "path": "homeworks/artifacts/day_40_local/password_gen.py"
+    },
+    {
+      "n": 10,
+      "key": "anagrams",
+      "kind": "feature",
+      "ok": false,
+      "first_try": false,
+      "gen_sec": 17.63,
+      "eval_count": 281,
+      "error": "",
+      "path": "homeworks/artifacts/day_40_local/anagrams.py"
+    },
+    {
+      "n": 11,
+      "key": "monolith_stats",
+      "kind": "refactor",
+      "ok": false,
+      "first_try": false,
+      "gen_sec": 25.43,
+      "eval_count": 367,
+      "error": "Traceback (most recent call last):\n  File \"<string>\", line 3, in <module>\n    m=importlib.util.module_from_spec(s); s.loader.exec_module(m)\n                                          ~~~~~~~~~~~~~~~~~~~~^^^\n  File \"<frozen importlib._bootstrap_external>\", line 759, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 491, in _call_with_frames_removed\n  File \"/Users/konstantinsokolov/dev/projects/pet_projects/ai_challenge/hw/hw01/homeworks/artifacts/day_40_local/monolith_stats.py\", line 8, ",
+      "path": "homeworks/artifacts/day_40_local/monolith_stats.py"
+    },
+    {
+      "n": 12,
+      "key": "validate_email",
+      "kind": "refactor",
+      "ok": true,
+      "first_try": true,
+      "gen_sec": 12.49,
+      "eval_count": 167,
+      "error": null,
+      "path": "homeworks/artifacts/day_40_local/validate_email.py"
+    },
+    {
+      "n": 13,
+      "key": "student_grade",
+      "kind": "refactor",
+      "ok": false,
+      "first_try": false,
+      "gen_sec": 12.25,
+      "eval_count": 170,
+      "error": "Traceback (most recent call last):\n  File \"<string>\", line 3, in <module>\n    m=importlib.util.module_from_spec(s); s.loader.exec_module(m)\n                                          ~~~~~~~~~~~~~~~~~~~~^^^\n  File \"<frozen importlib._bootstrap_external>\", line 759, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 491, in _call_with_frames_removed\n  File \"/Users/konstantinsokolov/dev/projects/pet_projects/ai_challenge/hw/hw01/homeworks/artifacts/day_40_local/student_grade.py\", line 6, i",
+      "path": "homeworks/artifacts/day_40_local/student_grade.py"
+    },
+    {
+      "n": 14,
+      "key": "test_fizzbuzz",
+      "kind": "test",
+      "ok": false,
+      "first_try": false,
+      "gen_sec": 10.85,
+      "eval_count": 151,
+      "error": "\n==================================== ERRORS ====================================\n_____________ ERROR collecting tests/test_day40_local_fizzbuzz.py ______________\ntests/test_day40_local_fizzbuzz.py:10: in <module>\n    spec.loader.exec_module(fizzbuzz)\n<frozen importlib._bootstrap_external>:755: in exec_module\n    ???\n<frozen importlib._bootstrap_external>:892: in get_code\n    ???\n<frozen importlib._bootstrap_external>:950: in get_data\n    ???\nE   FileNotFoundError: [Errno 2] No such file or dire",
+      "path": "tests/test_day40_local_fizzbuzz.py"
+    },
+    {
+      "n": 15,
+      "key": "test_wordcount",
+      "kind": "test",
+      "ok": false,
+      "first_try": false,
+      "gen_sec": 20.99,
+      "eval_count": 294,
+      "error": "F                                                                        [100%]\n=================================== FAILURES ===================================\n________________________________ test_wordcount ________________________________\n\nwordcount = <module 'wordcount' from '/Users/konstantinsokolov/dev/projects/pet_projects/ai_challenge/hw/hw01/homeworks/artifacts/day_40_local/wordcount.py'>\n\n    def test_wordcount(wordcount):\n        for input_str, expected_count in test_cases.items():\n> ",
+      "path": "tests/test_day40_local_wordcount.py"
+    },
+    {
+      "n": 16,
+      "key": "test_bugfixes",
+      "kind": "test",
+      "ok": false,
+      "first_try": false,
+      "gen_sec": 20.65,
+      "eval_count": 265,
+      "error": "\n==================================== ERRORS ====================================\n_____________ ERROR collecting tests/test_day40_local_bugfixes.py ______________\nImportError while importing test module '/Users/konstantinsokolov/dev/projects/pet_projects/ai_challenge/hw/hw01/tests/test_day40_local_bugfixes.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/importlib/_",
+      "path": "tests/test_day40_local_bugfixes.py"
+    },
+    {
+      "n": 17,
+      "key": "readme",
+      "kind": "docs",
+      "ok": false,
+      "first_try": false,
+      "gen_sec": 15.72,
+      "eval_count": 185,
+      "error": "readme len=226",
+      "path": "homeworks/artifacts/day_40_local/README.md"
+    },
+    {
+      "n": 18,
+      "key": "typing_cheatsheet",
+      "kind": "docs",
+      "ok": true,
+      "first_try": true,
+      "gen_sec": 46.33,
+      "eval_count": 536,
+      "error": null,
+      "path": "homeworks/artifacts/day_40_local/typing_cheatsheet.md"
+    }
+  ],
+  "vs_cloud": {
+    "run1_minutes": 3,
+    "run2_minutes": 2,
+    "run1_streak": 18,
+    "run2_streak": 18,
+    "local_streak": 3,
+    "local_minutes": 5
+  }
+}
