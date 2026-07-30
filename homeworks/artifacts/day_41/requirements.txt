@@ -1,0 +1,12 @@
+# Dependencies for day_41 aviation dataset scripts.
+# From repo root:
+#   source .venv/bin/activate
+#   pip install -r homeworks/artifacts/day_41/requirements.txt
+
+datasets>=2.14.0
+
+# Baseline via Cursor (CURSOR_API_KEY). Requires Python 3.10+.
+# cursor-sdk
+
+# Local baseline alternative: Ollama running at http://127.0.0.1:11434
+# (no pip package required)

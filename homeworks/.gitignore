@@ -11,3 +11,5 @@ artifacts/day_38/webapp_stderr.log
 !artifacts/day_40_r2/**
 !artifacts/day_40_local/
 !artifacts/day_40_local/**
+!artifacts/day_41/
+!artifacts/day_41/**
