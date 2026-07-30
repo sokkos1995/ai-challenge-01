@@ -1,0 +1,14 @@
+# Ollama Modelfile for day_41 aviation fine-tune demo.
+# After Unsloth GGUF export, set FROM to the absolute path of your .gguf file, then:
+#   ollama create aviation-faa -f homeworks/artifacts/day_41/Modelfile.aviation-faa
+#
+# Example:
+# FROM /Users/YOU/dev/.../homeworks/artifacts/day_41/aviation-faa-q4_k_m.gguf
+
+FROM ./aviation-faa-q4_k_m.gguf
+
+PARAMETER temperature 0.2
+PARAMETER top_p 0.9
+PARAMETER num_ctx 4096
+
+SYSTEM """You are an aviation expert and FAA-certified flight instructor. Answer questions accurately based on Federal Aviation Regulations, the Aeronautical Information Manual, and standard aviation knowledge. Prefer concise, instructor-style answers that cite the relevant FAR/AIM when applicable."""

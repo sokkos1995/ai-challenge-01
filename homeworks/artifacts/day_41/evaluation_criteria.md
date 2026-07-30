@@ -27,3 +27,12 @@
 4. Зафиксировать: win / tie / loss по каждому примеру.
 
 Автоматические метрики (опционально позже): exact/partial match по ключевым номерам CFR, длина ответа, ROUGE-L к gold.
+
+## Демо: быстрый чеклист сравнения
+
+1. Прогнать `day_41_demo_compare.py` (base `qwen2.5:7b` vs `aviation-faa`).
+2. Обязательно проверить ловушки:
+   - **93.93** — Los Angeles SFRA (не Grand Canyon);
+   - **107.77** — смена имени на сертификате (не alcohol/drugs).
+3. Заполнить в `demo_compare.json` поля `score_*` и `winner`.
+4. Итог для слайда: `avg_base`, `avg_tuned`, `wins_tuned / ties / losses`.
