@@ -128,11 +128,13 @@ python homeworks/artifacts/day_41/train_unsloth.py \
 ```bash
 source .venv-unsloth/bin/activate
 python homeworks/artifacts/day_41/train_unsloth.py --export-gguf \
-  --out homeworks/artifacts/day_41/unsloth_out \
-  --gguf-out homeworks/artifacts/day_41/aviation-faa-q4_k_m.gguf
+  --out homeworks/artifacts/day_41/unsloth_out
 
-# Modelfile уже лежит рядом с артефактами — поправьте FROM на путь к GGUF
-ollama create aviation-faa -f homeworks/artifacts/day_41/Modelfile.aviation-faa
+# Фактический путь после экспорта (Unsloth):
+# homeworks/artifacts/day_41/gguf_export/Qwen2.5-7B-Instruct.Q4_K_M.gguf
+# Modelfile.aviation-faa уже указывает FROM на этот файл (относительно каталога artifacts/day_41)
+cd homeworks/artifacts/day_41
+ollama create aviation-faa -f Modelfile.aviation-faa
 ollama run aviation-faa
 ```
 
