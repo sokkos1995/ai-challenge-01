@@ -1,0 +1,17 @@
+# Dependencies for day_41 aviation dataset scripts.
+# From repo root:
+#   source .venv/bin/activate
+#   pip install -r homeworks/artifacts/day_41/requirements.txt
+
+datasets>=2.14.0
+
+# Baseline via Cursor (CURSOR_API_KEY). Requires Python 3.10+.
+# cursor-sdk
+
+# Local baseline / demo compare: Ollama at http://127.0.0.1:11434
+# (no pip package required)
+
+# Local training (separate .venv-unsloth, GPU recommended):
+#   pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"
+#   pip install datasets transformers trl peft accelerate bitsandbytes
+#   python homeworks/artifacts/day_41/train_unsloth.py ...
