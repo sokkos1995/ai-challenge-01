@@ -80,3 +80,23 @@ def test_cursor_cwd_from_env(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
 
     monkeypatch.delenv("CURSOR_CWD", raising=False)
     assert cursor_cwd_from_env() == os.getcwd()
+
+
+def test_get_routing_models_cursor_defaults_and_overrides(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.config import (
+        CURSOR_ROUTING_CHEAP_MODEL,
+        CURSOR_ROUTING_STRONG_MODEL,
+        get_routing_models,
+    )
+
+    monkeypatch.delenv("LLM_CHEAP_MODEL", raising=False)
+    monkeypatch.delenv("LLM_STRONG_MODEL", raising=False)
+    cheap, strong = get_routing_models("cursor")
+    assert cheap == CURSOR_ROUTING_CHEAP_MODEL
+    assert strong == CURSOR_ROUTING_STRONG_MODEL
+
+    monkeypatch.setenv("LLM_CHEAP_MODEL", "composer-2")
+    monkeypatch.setenv("LLM_STRONG_MODEL", "composer-2.5")
+    cheap2, strong2 = get_routing_models("cursor")
+    assert cheap2 == "composer-2"
+    assert strong2 == "composer-2.5"

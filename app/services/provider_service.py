@@ -33,15 +33,23 @@ class ProviderService:
         self.ssl_context = ssl_context
 
     def complete(
-        self, messages: list[dict[str, str]], options: AgentRequestOptions
+        self,
+        messages: list[dict[str, str]],
+        options: AgentRequestOptions,
+        *,
+        model_candidates: list[str] | None = None,
     ) -> tuple[dict, str, float]:
+        candidates = model_candidates if model_candidates is not None else self.model_candidates
+        if not candidates:
+            raise ValueError("model_candidates must not be empty")
+
         data: Optional[dict] = None
-        tried_model = self.model_candidates[0]
+        tried_model = candidates[0]
         request_started = time.perf_counter()
         response_elapsed_sec = 0.0
 
         try:
-            for current_model in self.model_candidates:
+            for current_model in candidates:
                 tried_model = current_model
                 try:
                     if self.provider == "cursor":
@@ -61,7 +69,7 @@ class ProviderService:
                             options,
                         )
                     response_elapsed_sec = time.perf_counter() - request_started
-                    if current_model != self.model_candidates[0]:
+                    if current_model != candidates[0]:
                         print(
                             f"Info: primary model unavailable, used fallback: {current_model}",
                             file=sys.stderr,
@@ -74,7 +82,7 @@ class ProviderService:
                         or "model_not_found" in error_text
                         or "does not exist" in error_text
                     )
-                    if no_endpoints and current_model != self.model_candidates[-1]:
+                    if no_endpoints and current_model != candidates[-1]:
                         continue
                     if exc.code == 403 and "1010" in error_text:
                         raise RuntimeError(
@@ -85,7 +93,7 @@ class ProviderService:
                 except RuntimeError as exc:
                     if (
                         self.provider == "cursor"
-                        and current_model != self.model_candidates[-1]
+                        and current_model != candidates[-1]
                         and _is_cursor_model_unavailable(str(exc))
                     ):
                         continue
