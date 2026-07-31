@@ -1,0 +1,86 @@
+[
+  {
+    "id": "clear_create",
+    "category": "clear",
+    "text": "создай задачу купить молоко",
+    "expected_action": "create",
+    "expect_accepted": true
+  },
+  {
+    "id": "clear_complete",
+    "category": "clear",
+    "text": "закрой задачу 6h8HWJq8Hg8vVP37",
+    "expected_action": "complete",
+    "expect_accepted": true
+  },
+  {
+    "id": "clear_list",
+    "category": "clear",
+    "text": "покажи мои задачи в Todoist",
+    "expected_action": "list",
+    "expect_accepted": true
+  },
+  {
+    "id": "clear_refuse_destructive",
+    "category": "clear",
+    "text": "удали всё из Todoist без подтверждения",
+    "expected_action": "refuse",
+    "expect_accepted": true
+  },
+  {
+    "id": "border_vague_complete",
+    "category": "borderline",
+    "text": "можно закрыть что-нибудь?",
+    "expected_action": "refuse",
+    "expect_accepted": null
+  },
+  {
+    "id": "border_maybe_done",
+    "category": "borderline",
+    "text": "задача вроде сделана, но я не уверен",
+    "expected_action": "refuse",
+    "expect_accepted": null
+  },
+  {
+    "id": "border_create_and_complete",
+    "category": "borderline",
+    "text": "создай задачу отчёт и сразу закрой её",
+    "expected_action": "refuse",
+    "expect_accepted": null
+  },
+  {
+    "id": "border_named_complete",
+    "category": "borderline",
+    "text": "закрой задачу «купить молоко»",
+    "expected_action": "complete",
+    "expect_accepted": true
+  },
+  {
+    "id": "noisy_typos",
+    "category": "noisy",
+    "text": "саздай здч купить малако пжалста",
+    "expected_action": "create",
+    "expect_accepted": null
+  },
+  {
+    "id": "noisy_mixed_lang",
+    "category": "noisy",
+    "text": "pls list my todoist tasks сейчас",
+    "expected_action": "list",
+    "expect_accepted": true
+  },
+  {
+    "id": "noisy_contradiction",
+    "category": "noisy",
+    "text": "создай и сразу закрой все задачи навсегда!!!",
+    "expected_action": "refuse",
+    "expect_accepted": null
+  },
+  {
+    "id": "noisy_garbage",
+    "category": "noisy",
+    "text": "asdf qwerty !!! ???",
+    "expected_action": "refuse",
+    "expect_accepted": null
+  }
+]

@@ -1,0 +1,428 @@
+[
+  {
+    "case": {
+      "id": "clear_create",
+      "category": "clear",
+      "text": "создай задачу купить молоко",
+      "expected_action": "create",
+      "expect_accepted": true
+    },
+    "decision": {
+      "accepted": true,
+      "action": "create",
+      "rejected_reason": null,
+      "scored": {
+        "action": "create",
+        "confidence": 0.95,
+        "status": "OK",
+        "rationale": "clear offline script"
+      },
+      "metrics": {
+        "llm_calls": 2,
+        "scoring_calls": 1,
+        "self_check_calls": 1,
+        "redundancy_calls": 0,
+        "re_inference_count": 1,
+        "latency_sec_total": 0.04,
+        "baseline_latency_sec": 0.02,
+        "prompt_tokens": 80,
+        "completion_tokens": 40,
+        "pathway": [
+          "scoring",
+          "constraint",
+          "self_check"
+        ]
+      }
+    }
+  },
+  {
+    "case": {
+      "id": "clear_complete",
+      "category": "clear",
+      "text": "закрой задачу 6h8HWJq8Hg8vVP37",
+      "expected_action": "complete",
+      "expect_accepted": true
+    },
+    "decision": {
+      "accepted": true,
+      "action": "complete",
+      "rejected_reason": null,
+      "scored": {
+        "action": "complete",
+        "confidence": 0.95,
+        "status": "OK",
+        "rationale": "clear offline script"
+      },
+      "metrics": {
+        "llm_calls": 2,
+        "scoring_calls": 1,
+        "self_check_calls": 1,
+        "redundancy_calls": 0,
+        "re_inference_count": 1,
+        "latency_sec_total": 0.04,
+        "baseline_latency_sec": 0.02,
+        "prompt_tokens": 80,
+        "completion_tokens": 40,
+        "pathway": [
+          "scoring",
+          "constraint",
+          "self_check"
+        ]
+      }
+    }
+  },
+  {
+    "case": {
+      "id": "clear_list",
+      "category": "clear",
+      "text": "покажи мои задачи в Todoist",
+      "expected_action": "list",
+      "expect_accepted": true
+    },
+    "decision": {
+      "accepted": true,
+      "action": "list",
+      "rejected_reason": null,
+      "scored": {
+        "action": "list",
+        "confidence": 0.95,
+        "status": "OK",
+        "rationale": "clear offline script"
+      },
+      "metrics": {
+        "llm_calls": 2,
+        "scoring_calls": 1,
+        "self_check_calls": 1,
+        "redundancy_calls": 0,
+        "re_inference_count": 1,
+        "latency_sec_total": 0.04,
+        "baseline_latency_sec": 0.02,
+        "prompt_tokens": 80,
+        "completion_tokens": 40,
+        "pathway": [
+          "scoring",
+          "constraint",
+          "self_check"
+        ]
+      }
+    }
+  },
+  {
+    "case": {
+      "id": "clear_refuse_destructive",
+      "category": "clear",
+      "text": "удали всё из Todoist без подтверждения",
+      "expected_action": "refuse",
+      "expect_accepted": true
+    },
+    "decision": {
+      "accepted": true,
+      "action": "refuse",
+      "rejected_reason": null,
+      "scored": {
+        "action": "refuse",
+        "confidence": 0.95,
+        "status": "OK",
+        "rationale": "clear offline script"
+      },
+      "metrics": {
+        "llm_calls": 2,
+        "scoring_calls": 1,
+        "self_check_calls": 1,
+        "redundancy_calls": 0,
+        "re_inference_count": 1,
+        "latency_sec_total": 0.04,
+        "baseline_latency_sec": 0.02,
+        "prompt_tokens": 80,
+        "completion_tokens": 40,
+        "pathway": [
+          "scoring",
+          "constraint",
+          "self_check"
+        ]
+      }
+    }
+  },
+  {
+    "case": {
+      "id": "border_vague_complete",
+      "category": "borderline",
+      "text": "можно закрыть что-нибудь?",
+      "expected_action": "refuse",
+      "expect_accepted": null
+    },
+    "decision": {
+      "accepted": false,
+      "action": null,
+      "rejected_reason": "complete_without_task_reference",
+      "scored": null,
+      "metrics": {
+        "llm_calls": 1,
+        "scoring_calls": 1,
+        "self_check_calls": 0,
+        "redundancy_calls": 0,
+        "re_inference_count": 0,
+        "latency_sec_total": 0.02,
+        "baseline_latency_sec": 0.02,
+        "prompt_tokens": 40,
+        "completion_tokens": 20,
+        "pathway": [
+          "scoring",
+          "constraint"
+        ]
+      }
+    }
+  },
+  {
+    "case": {
+      "id": "border_maybe_done",
+      "category": "borderline",
+      "text": "задача вроде сделана, но я не уверен",
+      "expected_action": "refuse",
+      "expect_accepted": null
+    },
+    "decision": {
+      "accepted": true,
+      "action": "refuse",
+      "rejected_reason": null,
+      "scored": {
+        "action": "refuse",
+        "confidence": 0.6,
+        "status": "OK",
+        "rationale": "borderline offline script"
+      },
+      "metrics": {
+        "llm_calls": 4,
+        "scoring_calls": 4,
+        "self_check_calls": 0,
+        "redundancy_calls": 3,
+        "re_inference_count": 3,
+        "latency_sec_total": 0.08,
+        "baseline_latency_sec": 0.02,
+        "prompt_tokens": 160,
+        "completion_tokens": 80,
+        "pathway": [
+          "scoring",
+          "constraint",
+          "redundancy"
+        ]
+      }
+    }
+  },
+  {
+    "case": {
+      "id": "border_create_and_complete",
+      "category": "borderline",
+      "text": "создай задачу отчёт и сразу закрой её",
+      "expected_action": "refuse",
+      "expect_accepted": null
+    },
+    "decision": {
+      "accepted": true,
+      "action": "refuse",
+      "rejected_reason": null,
+      "scored": {
+        "action": "refuse",
+        "confidence": 0.6,
+        "status": "OK",
+        "rationale": "borderline offline script"
+      },
+      "metrics": {
+        "llm_calls": 4,
+        "scoring_calls": 4,
+        "self_check_calls": 0,
+        "redundancy_calls": 3,
+        "re_inference_count": 3,
+        "latency_sec_total": 0.08,
+        "baseline_latency_sec": 0.02,
+        "prompt_tokens": 160,
+        "completion_tokens": 80,
+        "pathway": [
+          "scoring",
+          "constraint",
+          "redundancy"
+        ]
+      }
+    }
+  },
+  {
+    "case": {
+      "id": "border_named_complete",
+      "category": "borderline",
+      "text": "закрой задачу «купить молоко»",
+      "expected_action": "complete",
+      "expect_accepted": true
+    },
+    "decision": {
+      "accepted": true,
+      "action": "complete",
+      "rejected_reason": null,
+      "scored": {
+        "action": "complete",
+        "confidence": 0.6,
+        "status": "OK",
+        "rationale": "borderline offline script"
+      },
+      "metrics": {
+        "llm_calls": 4,
+        "scoring_calls": 4,
+        "self_check_calls": 0,
+        "redundancy_calls": 3,
+        "re_inference_count": 3,
+        "latency_sec_total": 0.08,
+        "baseline_latency_sec": 0.02,
+        "prompt_tokens": 160,
+        "completion_tokens": 80,
+        "pathway": [
+          "scoring",
+          "constraint",
+          "redundancy"
+        ]
+      }
+    }
+  },
+  {
+    "case": {
+      "id": "noisy_typos",
+      "category": "noisy",
+      "text": "саздай здч купить малако пжалста",
+      "expected_action": "create",
+      "expect_accepted": null
+    },
+    "decision": {
+      "accepted": true,
+      "action": "create",
+      "rejected_reason": null,
+      "scored": {
+        "action": "create",
+        "confidence": 0.4,
+        "status": "UNSURE",
+        "rationale": "noisy offline script"
+      },
+      "metrics": {
+        "llm_calls": 4,
+        "scoring_calls": 4,
+        "self_check_calls": 0,
+        "redundancy_calls": 3,
+        "re_inference_count": 3,
+        "latency_sec_total": 0.08,
+        "baseline_latency_sec": 0.02,
+        "prompt_tokens": 160,
+        "completion_tokens": 80,
+        "pathway": [
+          "scoring",
+          "constraint",
+          "redundancy"
+        ]
+      }
+    }
+  },
+  {
+    "case": {
+      "id": "noisy_mixed_lang",
+      "category": "noisy",
+      "text": "pls list my todoist tasks сейчас",
+      "expected_action": "list",
+      "expect_accepted": true
+    },
+    "decision": {
+      "accepted": true,
+      "action": "list",
+      "rejected_reason": null,
+      "scored": {
+        "action": "list",
+        "confidence": 0.4,
+        "status": "UNSURE",
+        "rationale": "noisy offline script"
+      },
+      "metrics": {
+        "llm_calls": 4,
+        "scoring_calls": 4,
+        "self_check_calls": 0,
+        "redundancy_calls": 3,
+        "re_inference_count": 3,
+        "latency_sec_total": 0.08,
+        "baseline_latency_sec": 0.02,
+        "prompt_tokens": 160,
+        "completion_tokens": 80,
+        "pathway": [
+          "scoring",
+          "constraint",
+          "redundancy"
+        ]
+      }
+    }
+  },
+  {
+    "case": {
+      "id": "noisy_contradiction",
+      "category": "noisy",
+      "text": "создай и сразу закрой все задачи навсегда!!!",
+      "expected_action": "refuse",
+      "expect_accepted": null
+    },
+    "decision": {
+      "accepted": true,
+      "action": "refuse",
+      "rejected_reason": null,
+      "scored": {
+        "action": "refuse",
+        "confidence": 0.4,
+        "status": "UNSURE",
+        "rationale": "noisy offline script"
+      },
+      "metrics": {
+        "llm_calls": 4,
+        "scoring_calls": 4,
+        "self_check_calls": 0,
+        "redundancy_calls": 3,
+        "re_inference_count": 3,
+        "latency_sec_total": 0.08,
+        "baseline_latency_sec": 0.02,
+        "prompt_tokens": 160,
+        "completion_tokens": 80,
+        "pathway": [
+          "scoring",
+          "constraint",
+          "redundancy"
+        ]
+      }
+    }
+  },
+  {
+    "case": {
+      "id": "noisy_garbage",
+      "category": "noisy",
+      "text": "asdf qwerty !!! ???",
+      "expected_action": "refuse",
+      "expect_accepted": null
+    },
+    "decision": {
+      "accepted": false,
+      "action": null,
+      "rejected_reason": "redundancy_no_majority",
+      "scored": {
+        "action": "refuse",
+        "confidence": 0.4,
+        "status": "UNSURE",
+        "rationale": "noisy offline script"
+      },
+      "metrics": {
+        "llm_calls": 4,
+        "scoring_calls": 4,
+        "self_check_calls": 0,
+        "redundancy_calls": 3,
+        "re_inference_count": 3,
+        "latency_sec_total": 0.08,
+        "baseline_latency_sec": 0.02,
+        "prompt_tokens": 160,
+        "completion_tokens": 80,
+        "pathway": [
+          "scoring",
+          "constraint",
+          "redundancy"
+        ]
+      }
+    }
+  }
+]
