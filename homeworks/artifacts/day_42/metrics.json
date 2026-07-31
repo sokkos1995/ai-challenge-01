@@ -1,0 +1,43 @@
+{
+  "cases": 12,
+  "accepted_count": 10,
+  "rejected_count": 2,
+  "rejected_rate": 0.1667,
+  "re_inference_count_total": 25,
+  "re_inference_avg": 2.0833,
+  "llm_calls_total": 37,
+  "llm_calls_avg": 3.0833,
+  "latency_sec_total": 0.74,
+  "latency_sec_avg": 0.0617,
+  "baseline_latency_sec_total": 0.24,
+  "baseline_latency_sec_avg": 0.02,
+  "latency_overhead_sec": 0.5,
+  "latency_overhead_ratio": 3.0833,
+  "prompt_tokens_total": 1480,
+  "completion_tokens_total": 740,
+  "token_cost_proxy_total": 2220,
+  "accepted_action_match": 10,
+  "accepted_action_comparable": 10,
+  "by_category": {
+    "clear": {
+      "cases": 4,
+      "rejected_count": 0,
+      "re_inference_count": 4,
+      "latency_sec_total": 0.16
+    },
+    "borderline": {
+      "cases": 4,
+      "rejected_count": 1,
+      "re_inference_count": 9,
+      "latency_sec_total": 0.26
+    },
+    "noisy": {
+      "cases": 4,
+      "rejected_count": 1,
+      "re_inference_count": 12,
+      "latency_sec_total": 0.32
+    }
+  },
+  "provider": "offline",
+  "mode": "offline"
+}
