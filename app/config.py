@@ -26,6 +26,17 @@ CURSOR_FALLBACK_MODELS = [
     "auto",
 ]
 
+# Day 43 quality routing defaults (cheap → strong). Separate from availability fallbacks.
+CURSOR_ROUTING_CHEAP_MODEL = "composer-2"
+CURSOR_ROUTING_STRONG_MODEL = "composer-2.5"
+GROQ_ROUTING_CHEAP_MODEL = "llama-3.1-8b-instant"
+GROQ_ROUTING_STRONG_MODEL = "llama-3.3-70b-versatile"
+OPENROUTER_ROUTING_CHEAP_MODEL = "google/gemini-2.5-flash-lite"
+OPENROUTER_ROUTING_STRONG_MODEL = "qwen/qwen-2.5-72b-instruct"
+OLLAMA_ROUTING_CHEAP_MODEL = "qwen2.5-coder:1.5b"
+OLLAMA_ROUTING_STRONG_MODEL = "qwen2.5-coder:7b"
+OLLAMA_OPENAI_API_URL = "http://127.0.0.1:11434/v1/chat/completions"
+
 
 def load_env_file(path: str = ".env") -> None:
     if not os.path.exists(path):
@@ -113,6 +124,51 @@ def get_provider_config() -> tuple[str, str, str, list[str]]:
     fallback_models = [m.strip() for m in fallback_raw.split(",") if m.strip()]
     model_candidates = [model] + [m for m in fallback_models if m != model]
     return provider, api_url, api_key, model_candidates
+
+
+def get_routing_models(provider: str, model_candidates: list[str] | None = None) -> tuple[str, str]:
+    """
+    Cheap/strong pair for quality-based model routing (day_43).
+
+    Env overrides: LLM_CHEAP_MODEL, LLM_STRONG_MODEL.
+    Falls back to provider defaults, then primary from model_candidates.
+    """
+    primary = (model_candidates or [""])[0].strip() if model_candidates else ""
+    if provider == "cursor":
+        cheap_default = CURSOR_ROUTING_CHEAP_MODEL
+        strong_default = CURSOR_ROUTING_STRONG_MODEL
+    elif provider == "groq":
+        cheap_default = GROQ_ROUTING_CHEAP_MODEL
+        strong_default = GROQ_ROUTING_STRONG_MODEL
+    elif provider == "ollama":
+        cheap_default = OLLAMA_ROUTING_CHEAP_MODEL
+        strong_default = OLLAMA_ROUTING_STRONG_MODEL
+    else:
+        cheap_default = OPENROUTER_ROUTING_CHEAP_MODEL
+        strong_default = OPENROUTER_ROUTING_STRONG_MODEL
+
+    cheap_raw = os.getenv("LLM_CHEAP_MODEL")
+    strong_raw = os.getenv("LLM_STRONG_MODEL")
+    cheap = (cheap_raw.strip() if cheap_raw else "") or cheap_default or primary
+    strong = (strong_raw.strip() if strong_raw else "") or strong_default or primary
+    if not cheap:
+        raise RuntimeError("Error: set LLM_CHEAP_MODEL (or LLM_MODEL) for model routing.")
+    if not strong:
+        raise RuntimeError("Error: set LLM_STRONG_MODEL for model routing.")
+    return cheap, strong
+
+
+def float_from_env(var_name: str, default: float) -> float:
+    raw = os.getenv(var_name)
+    if raw is None:
+        return default
+    stripped = raw.strip()
+    if not stripped:
+        return default
+    try:
+        return float(stripped)
+    except ValueError:
+        return default
 
 
 def positive_int_from_env(var_name: str, default: int) -> int:
