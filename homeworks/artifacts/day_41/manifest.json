@@ -1,0 +1,22 @@
+{
+  "task": "generation",
+  "domain": "aviation_qa",
+  "source": "ziksy/faa-aviation-training",
+  "seed": 41,
+  "total": 100,
+  "train": 80,
+  "eval": 20,
+  "real_count": 30,
+  "synthetic_count": 70,
+  "real_ratio": 0.3,
+  "system_prompt": "You are an aviation expert and FAA-certified flight instructor. Answer questions accurately based on Federal Aviation Regulations, the Aeronautical Information Manual, and standard aviation knowledge.",
+  "filters": {
+    "min_user_chars": 20,
+    "min_assistant_chars": 20,
+    "max_assistant_chars": 4000
+  },
+  "files": {
+    "train": "train.jsonl",
+    "eval": "eval.jsonl"
+  }
+}
