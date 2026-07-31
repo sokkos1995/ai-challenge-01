@@ -9,3 +9,6 @@ mcp==1.27.0
 
 # Optional: day_38 UI smoke (homeworks/src/day_38_smoke/run_smoke.py).
 # playwright
+
+# day_41 aviation dataset build (or: pip install -r homeworks/artifacts/day_41/requirements.txt)
+datasets>=2.14.0
