@@ -1,0 +1,387 @@
+[
+  {
+    "id": "billing_clear",
+    "category": "clear",
+    "mode": "monolithic",
+    "ok": true,
+    "error": null,
+    "expect": {
+      "intent": "billing",
+      "urgency": "low",
+      "product": "payments",
+      "decision": "auto_reply"
+    },
+    "llm_calls": 1,
+    "latency_sec_total": 8.041001334029716,
+    "models_used": [
+      "qwen2.5-coder:7b"
+    ],
+    "stages": [
+      "monolithic"
+    ],
+    "intent": "billing",
+    "urgency": "medium",
+    "product": "payments",
+    "decision": "auto_reply",
+    "summary": "Please contact our billing department for assistance with duplicate charges.",
+    "match_intent": true,
+    "match_decision": true
+  },
+  {
+    "id": "billing_clear",
+    "category": "clear",
+    "mode": "multistage",
+    "ok": false,
+    "error": "stage1:invalid_lang:?",
+    "expect": {
+      "intent": "billing",
+      "urgency": "low",
+      "product": "payments",
+      "decision": "auto_reply"
+    },
+    "llm_calls": 1,
+    "latency_sec_total": 2.261243084038142,
+    "models_used": [
+      "qwen2.5-coder:1.5b"
+    ],
+    "stages": [
+      "normalize"
+    ]
+  },
+  {
+    "id": "bug_critical_noisy",
+    "category": "noisy",
+    "mode": "monolithic",
+    "ok": true,
+    "error": null,
+    "expect": {
+      "intent": "bug",
+      "urgency": "critical",
+      "product": "api",
+      "decision": "escalate"
+    },
+    "llm_calls": 1,
+    "latency_sec_total": 2.7701162499724887,
+    "models_used": [
+      "qwen2.5-coder:7b"
+    ],
+    "stages": [
+      "monolithic"
+    ],
+    "intent": "bug",
+    "urgency": "critical",
+    "product": "api",
+    "decision": "escalate",
+    "summary": "API outage",
+    "match_intent": true,
+    "match_decision": true
+  },
+  {
+    "id": "bug_critical_noisy",
+    "category": "noisy",
+    "mode": "multistage",
+    "ok": false,
+    "error": "stage1:invalid_lang:?",
+    "expect": {
+      "intent": "bug",
+      "urgency": "critical",
+      "product": "api",
+      "decision": "escalate"
+    },
+    "llm_calls": 1,
+    "latency_sec_total": 0.5034600420040078,
+    "models_used": [
+      "qwen2.5-coder:1.5b"
+    ],
+    "stages": [
+      "normalize"
+    ]
+  },
+  {
+    "id": "spam_promo",
+    "category": "spam",
+    "mode": "monolithic",
+    "ok": true,
+    "error": null,
+    "expect": {
+      "intent": "spam",
+      "urgency": "low",
+      "product": "unknown",
+      "decision": "reject"
+    },
+    "llm_calls": 1,
+    "latency_sec_total": 1.7106216250103898,
+    "models_used": [
+      "qwen2.5-coder:7b"
+    ],
+    "stages": [
+      "monolithic"
+    ],
+    "intent": "spam",
+    "urgency": "low",
+    "product": "unknown",
+    "decision": "reject",
+    "summary": "Spam detected",
+    "match_intent": true,
+    "match_decision": true
+  },
+  {
+    "id": "spam_promo",
+    "category": "spam",
+    "mode": "multistage",
+    "ok": false,
+    "error": "stage1:invalid_lang:?",
+    "expect": {
+      "intent": "spam",
+      "urgency": "low",
+      "product": "unknown",
+      "decision": "reject"
+    },
+    "llm_calls": 1,
+    "latency_sec_total": 0.22819379100110382,
+    "models_used": [
+      "qwen2.5-coder:1.5b"
+    ],
+    "stages": [
+      "normalize"
+    ]
+  },
+  {
+    "id": "access_ambiguous",
+    "category": "ambiguous",
+    "mode": "monolithic",
+    "ok": false,
+    "error": "invalid_product:auth|web",
+    "expect": {
+      "intent": "access",
+      "urgency": "medium",
+      "product": "auth",
+      "decision": "queue"
+    },
+    "llm_calls": 1,
+    "latency_sec_total": 2.014114541991148,
+    "models_used": [
+      "qwen2.5-coder:7b"
+    ],
+    "stages": [
+      "monolithic"
+    ]
+  },
+  {
+    "id": "access_ambiguous",
+    "category": "ambiguous",
+    "mode": "multistage",
+    "ok": false,
+    "error": "stage1:invalid_lang:?",
+    "expect": {
+      "intent": "access",
+      "urgency": "medium",
+      "product": "auth",
+      "decision": "queue"
+    },
+    "llm_calls": 1,
+    "latency_sec_total": 0.2379771249834448,
+    "models_used": [
+      "qwen2.5-coder:1.5b"
+    ],
+    "stages": [
+      "normalize"
+    ]
+  },
+  {
+    "id": "feature_mixed",
+    "category": "mixed",
+    "mode": "monolithic",
+    "ok": true,
+    "error": null,
+    "expect": {
+      "intent": "feature",
+      "urgency": "low",
+      "product": "web",
+      "decision": "auto_reply"
+    },
+    "llm_calls": 1,
+    "latency_sec_total": 2.77576504094759,
+    "models_used": [
+      "qwen2.5-coder:7b"
+    ],
+    "stages": [
+      "monolithic"
+    ],
+    "intent": "feature",
+    "urgency": "low",
+    "product": "web",
+    "decision": "queue",
+    "summary": "Feature request: Export CSV from dashboard",
+    "match_intent": true,
+    "match_decision": false
+  },
+  {
+    "id": "feature_mixed",
+    "category": "mixed",
+    "mode": "multistage",
+    "ok": false,
+    "error": "stage1:invalid_lang:?",
+    "expect": {
+      "intent": "feature",
+      "urgency": "low",
+      "product": "web",
+      "decision": "auto_reply"
+    },
+    "llm_calls": 1,
+    "latency_sec_total": 0.18967662495560944,
+    "models_used": [
+      "qwen2.5-coder:1.5b"
+    ],
+    "stages": [
+      "normalize"
+    ]
+  },
+  {
+    "id": "billing_high",
+    "category": "high_risk",
+    "mode": "monolithic",
+    "ok": true,
+    "error": null,
+    "expect": {
+      "intent": "billing",
+      "urgency": "high",
+      "product": "payments",
+      "decision": "escalate"
+    },
+    "llm_calls": 1,
+    "latency_sec_total": 3.146668832981959,
+    "models_used": [
+      "qwen2.5-coder:7b"
+    ],
+    "stages": [
+      "monolithic"
+    ],
+    "intent": "billing",
+    "urgency": "high",
+    "product": "payments",
+    "decision": "escalate",
+    "summary": "High urgency billing issue: Payment webhook failure impacting revenue pipeline",
+    "match_intent": true,
+    "match_decision": true
+  },
+  {
+    "id": "billing_high",
+    "category": "high_risk",
+    "mode": "multistage",
+    "ok": false,
+    "error": "stage1:invalid_lang:en|mixed|other",
+    "expect": {
+      "intent": "billing",
+      "urgency": "high",
+      "product": "payments",
+      "decision": "escalate"
+    },
+    "llm_calls": 1,
+    "latency_sec_total": 0.7575299589661881,
+    "models_used": [
+      "qwen2.5-coder:1.5b"
+    ],
+    "stages": [
+      "normalize"
+    ]
+  },
+  {
+    "id": "bug_mobile_medium",
+    "category": "clear",
+    "mode": "monolithic",
+    "ok": true,
+    "error": null,
+    "expect": {
+      "intent": "bug",
+      "urgency": "medium",
+      "product": "mobile",
+      "decision": "queue"
+    },
+    "llm_calls": 1,
+    "latency_sec_total": 2.8872746669803746,
+    "models_used": [
+      "qwen2.5-coder:7b"
+    ],
+    "stages": [
+      "monolithic"
+    ],
+    "intent": "bug",
+    "urgency": "medium",
+    "product": "mobile",
+    "decision": "queue",
+    "summary": "iOS 18 crash in mobile app settings",
+    "match_intent": true,
+    "match_decision": true
+  },
+  {
+    "id": "bug_mobile_medium",
+    "category": "clear",
+    "mode": "multistage",
+    "ok": false,
+    "error": "stage1:invalid_lang:?",
+    "expect": {
+      "intent": "bug",
+      "urgency": "medium",
+      "product": "mobile",
+      "decision": "queue"
+    },
+    "llm_calls": 1,
+    "latency_sec_total": 0.2301163339870982,
+    "models_used": [
+      "qwen2.5-coder:1.5b"
+    ],
+    "stages": [
+      "normalize"
+    ]
+  },
+  {
+    "id": "other_unclear",
+    "category": "ambiguous",
+    "mode": "monolithic",
+    "ok": true,
+    "error": null,
+    "expect": {
+      "intent": "other",
+      "urgency": "low",
+      "product": "unknown",
+      "decision": "queue"
+    },
+    "llm_calls": 1,
+    "latency_sec_total": 2.0196624160162173,
+    "models_used": [
+      "qwen2.5-coder:7b"
+    ],
+    "stages": [
+      "monolithic"
+    ],
+    "intent": "bug",
+    "urgency": "low",
+    "product": "unknown",
+    "decision": "queue",
+    "summary": "Unclear request, possibly a bug report",
+    "match_intent": false,
+    "match_decision": true
+  },
+  {
+    "id": "other_unclear",
+    "category": "ambiguous",
+    "mode": "multistage",
+    "ok": false,
+    "error": "stage1:invalid_lang:?",
+    "expect": {
+      "intent": "other",
+      "urgency": "low",
+      "product": "unknown",
+      "decision": "queue"
+    },
+    "llm_calls": 1,
+    "latency_sec_total": 0.2274756669648923,
+    "models_used": [
+      "qwen2.5-coder:1.5b"
+    ],
+    "stages": [
+      "normalize"
+    ]
+  }
+]

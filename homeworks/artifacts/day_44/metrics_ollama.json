@@ -1,0 +1,30 @@
+{
+  "total_rows": 16,
+  "modes": {
+    "monolithic": {
+      "count": 8,
+      "ok": 7,
+      "errors": 1,
+      "avg_llm_calls": 1.0,
+      "avg_latency_sec": 3.1707,
+      "intent_match_rate": 0.857,
+      "decision_match_rate": 0.857
+    },
+    "multistage": {
+      "count": 8,
+      "ok": 0,
+      "errors": 8,
+      "avg_llm_calls": 1.0,
+      "avg_latency_sec": 0.5795,
+      "intent_match_rate": 0.0,
+      "decision_match_rate": 0.0
+    }
+  },
+  "backend": "ollama",
+  "cheap_model": "qwen2.5-coder:1.5b",
+  "strong_model": "qwen2.5-coder:7b",
+  "variants": [
+    "monolithic",
+    "multistage"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "total": 8,
+  "stayed_cheap": 4,
+  "escalated_strong": 4,
+  "stayed_ids": [
+    "easy_capitals",
+    "easy_math",
+    "easy_definition",
+    "hard_tradeoff"
+  ],
+  "escalated_ids": [
+    "ambiguous_pronoun",
+    "underspecified_plan",
+    "noisy_mixed",
+    "hard_legalish"
+  ],
+  "reason_counts": {
+    "status_unsure": 4,
+    "low_confidence": 4,
+    "uncertain_markers": 2
+  },
+  "avg_llm_calls": 1.5,
+  "backend": "cursor",
+  "cheap_model": "composer-2",
+  "strong_model": "composer-2.5",
+  "errors": []
+}

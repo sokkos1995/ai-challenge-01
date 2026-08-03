@@ -1,0 +1,27 @@
+{
+  "total": 8,
+  "stayed_cheap": 6,
+  "escalated_strong": 2,
+  "stayed_ids": [
+    "easy_capitals",
+    "easy_math",
+    "easy_definition",
+    "ambiguous_pronoun",
+    "noisy_mixed",
+    "hard_tradeoff"
+  ],
+  "escalated_ids": [
+    "underspecified_plan",
+    "hard_legalish"
+  ],
+  "reason_counts": {
+    "status_unsure": 2,
+    "low_confidence": 2,
+    "short_answer": 1
+  },
+  "avg_llm_calls": 1.25,
+  "backend": "ollama",
+  "cheap_model": "qwen2.5-coder:1.5b",
+  "strong_model": "qwen2.5-coder:7b",
+  "errors": []
+}

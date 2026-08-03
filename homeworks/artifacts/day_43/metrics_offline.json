@@ -1,0 +1,28 @@
+{
+  "total": 8,
+  "stayed_cheap": 3,
+  "escalated_strong": 5,
+  "stayed_ids": [
+    "easy_capitals",
+    "easy_math",
+    "easy_definition"
+  ],
+  "escalated_ids": [
+    "ambiguous_pronoun",
+    "underspecified_plan",
+    "noisy_mixed",
+    "hard_tradeoff",
+    "hard_legalish"
+  ],
+  "reason_counts": {
+    "status_unsure": 5,
+    "low_confidence": 5,
+    "uncertain_markers": 2,
+    "short_answer": 3
+  },
+  "avg_llm_calls": 1.625,
+  "backend": "offline",
+  "cheap_model": "offline-cheap",
+  "strong_model": "offline-strong",
+  "errors": []
+}
