@@ -1,0 +1,50 @@
+[
+  {
+    "id": "easy_capitals",
+    "category": "easy",
+    "expect_tier": "cheap",
+    "text": "What is the capital of France? One short sentence."
+  },
+  {
+    "id": "easy_math",
+    "category": "easy",
+    "expect_tier": "cheap",
+    "text": "Compute 17 * 3. Reply with the number only in the answer field."
+  },
+  {
+    "id": "easy_definition",
+    "category": "easy",
+    "expect_tier": "cheap",
+    "text": "Define HTTP in one sentence."
+  },
+  {
+    "id": "ambiguous_pronoun",
+    "category": "ambiguous",
+    "expect_tier": "strong",
+    "text": "Should I delete it now? Answer carefully."
+  },
+  {
+    "id": "underspecified_plan",
+    "category": "ambiguous",
+    "expect_tier": "strong",
+    "text": "Make a migration plan for the system. Which system is not specified."
+  },
+  {
+    "id": "noisy_mixed",
+    "category": "hard",
+    "expect_tier": "strong",
+    "text": "asdf qwerty ??? complete the task id maybe tomorrow or not, what action?"
+  },
+  {
+    "id": "hard_tradeoff",
+    "category": "hard",
+    "expect_tier": "strong",
+    "text": "Compare SQLite vs Postgres for a multi-tenant SaaS with 50M rows and explain which to pick and why. Be specific."
+  },
+  {
+    "id": "hard_legalish",
+    "category": "hard",
+    "expect_tier": "strong",
+    "text": "Is it legal to scrape this site and resell the data in the EU? The site and jurisdiction details are missing."
+  }
+]

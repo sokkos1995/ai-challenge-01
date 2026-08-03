@@ -1,0 +1,35 @@
+{
+  "total_rows": 16,
+  "modes": {
+    "monolithic": {
+      "count": 8,
+      "ok": 8,
+      "errors": 0,
+      "avg_llm_calls": 1.0,
+      "avg_latency_sec": 4.2126,
+      "intent_match_rate": 0.875,
+      "decision_match_rate": 0.75
+    },
+    "multistage": {
+      "count": 8,
+      "ok": 8,
+      "errors": 0,
+      "avg_llm_calls": 3.0,
+      "avg_latency_sec": 10.2698,
+      "intent_match_rate": 0.75,
+      "decision_match_rate": 0.625
+    }
+  },
+  "agreement": {
+    "paired_cases": 8,
+    "intent_agree_rate": 0.875,
+    "decision_agree_rate": 0.875
+  },
+  "backend": "cursor",
+  "cheap_model": "composer-2",
+  "strong_model": "composer-2.5",
+  "variants": [
+    "monolithic",
+    "multistage"
+  ]
+}

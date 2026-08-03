@@ -1,0 +1,20 @@
+{
+  "total_rows": 1,
+  "modes": {
+    "multistage": {
+      "count": 1,
+      "ok": 1,
+      "errors": 0,
+      "avg_llm_calls": 3.0,
+      "avg_latency_sec": 0.03,
+      "intent_match_rate": 1.0,
+      "decision_match_rate": 1.0
+    }
+  },
+  "backend": "offline",
+  "cheap_model": "offline-cheap",
+  "strong_model": "offline-strong",
+  "variants": [
+    "multistage"
+  ]
+}

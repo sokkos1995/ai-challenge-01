@@ -1,0 +1,482 @@
+[
+  {
+    "id": "billing_clear",
+    "category": "clear",
+    "mode": "monolithic",
+    "ok": true,
+    "error": null,
+    "expect": {
+      "intent": "billing",
+      "urgency": "low",
+      "product": "payments",
+      "decision": "auto_reply"
+    },
+    "llm_calls": 1,
+    "latency_sec_total": 9.395024084020406,
+    "models_used": [
+      "composer-2.5"
+    ],
+    "stages": [
+      "monolithic"
+    ],
+    "intent": "billing",
+    "urgency": "high",
+    "product": "payments",
+    "decision": "escalate",
+    "summary": "Duplicate charge on INV-1024, refund requested",
+    "match_intent": true,
+    "match_decision": false
+  },
+  {
+    "id": "billing_clear",
+    "category": "clear",
+    "mode": "multistage",
+    "ok": true,
+    "error": null,
+    "expect": {
+      "intent": "billing",
+      "urgency": "low",
+      "product": "payments",
+      "decision": "auto_reply"
+    },
+    "llm_calls": 3,
+    "latency_sec_total": 10.354240165965166,
+    "models_used": [
+      "composer-2",
+      "composer-2",
+      "composer-2.5"
+    ],
+    "stages": [
+      "normalize",
+      "classify",
+      "format"
+    ],
+    "intent": "billing",
+    "urgency": "high",
+    "product": "payments",
+    "decision": "escalate",
+    "summary": "duplicate charge refund request INV-1024",
+    "match_intent": true,
+    "match_decision": false
+  },
+  {
+    "id": "bug_critical_noisy",
+    "category": "noisy",
+    "mode": "monolithic",
+    "ok": true,
+    "error": null,
+    "expect": {
+      "intent": "bug",
+      "urgency": "critical",
+      "product": "api",
+      "decision": "escalate"
+    },
+    "llm_calls": 1,
+    "latency_sec_total": 2.81039854203118,
+    "models_used": [
+      "composer-2.5"
+    ],
+    "stages": [
+      "monolithic"
+    ],
+    "intent": "bug",
+    "urgency": "critical",
+    "product": "api",
+    "decision": "escalate",
+    "summary": "Production checkout API returning HTTP 500 since 03:00 UTC",
+    "match_intent": true,
+    "match_decision": true
+  },
+  {
+    "id": "bug_critical_noisy",
+    "category": "noisy",
+    "mode": "multistage",
+    "ok": true,
+    "error": null,
+    "expect": {
+      "intent": "bug",
+      "urgency": "critical",
+      "product": "api",
+      "decision": "escalate"
+    },
+    "llm_calls": 3,
+    "latency_sec_total": 11.697418458992615,
+    "models_used": [
+      "composer-2",
+      "composer-2",
+      "composer-2.5"
+    ],
+    "stages": [
+      "normalize",
+      "classify",
+      "format"
+    ],
+    "intent": "bug",
+    "urgency": "high",
+    "product": "api",
+    "decision": "escalate",
+    "summary": "High-urgency checkout API 500 outage since 03:00 UTC",
+    "match_intent": true,
+    "match_decision": true
+  },
+  {
+    "id": "spam_promo",
+    "category": "spam",
+    "mode": "monolithic",
+    "ok": true,
+    "error": null,
+    "expect": {
+      "intent": "spam",
+      "urgency": "low",
+      "product": "unknown",
+      "decision": "reject"
+    },
+    "llm_calls": 1,
+    "latency_sec_total": 2.0964355830219574,
+    "models_used": [
+      "composer-2.5"
+    ],
+    "stages": [
+      "monolithic"
+    ],
+    "intent": "spam",
+    "urgency": "low",
+    "product": "unknown",
+    "decision": "reject",
+    "summary": "Promotional spam for fake followers",
+    "match_intent": true,
+    "match_decision": true
+  },
+  {
+    "id": "spam_promo",
+    "category": "spam",
+    "mode": "multistage",
+    "ok": true,
+    "error": null,
+    "expect": {
+      "intent": "spam",
+      "urgency": "low",
+      "product": "unknown",
+      "decision": "reject"
+    },
+    "llm_calls": 3,
+    "latency_sec_total": 8.193848375056405,
+    "models_used": [
+      "composer-2",
+      "composer-2",
+      "composer-2.5"
+    ],
+    "stages": [
+      "normalize",
+      "classify",
+      "format"
+    ],
+    "intent": "spam",
+    "urgency": "low",
+    "product": "unknown",
+    "decision": "reject",
+    "summary": "spam follower promotion ad",
+    "match_intent": true,
+    "match_decision": true
+  },
+  {
+    "id": "access_ambiguous",
+    "category": "ambiguous",
+    "mode": "monolithic",
+    "ok": true,
+    "error": null,
+    "expect": {
+      "intent": "access",
+      "urgency": "medium",
+      "product": "auth",
+      "decision": "queue"
+    },
+    "llm_calls": 1,
+    "latency_sec_total": 4.371218833955936,
+    "models_used": [
+      "composer-2.5"
+    ],
+    "stages": [
+      "monolithic"
+    ],
+    "intent": "access",
+    "urgency": "medium",
+    "product": "auth",
+    "decision": "queue",
+    "summary": "Cannot log in — password or 2FA issue on web",
+    "match_intent": true,
+    "match_decision": true
+  },
+  {
+    "id": "access_ambiguous",
+    "category": "ambiguous",
+    "mode": "multistage",
+    "ok": true,
+    "error": null,
+    "expect": {
+      "intent": "access",
+      "urgency": "medium",
+      "product": "auth",
+      "decision": "queue"
+    },
+    "llm_calls": 3,
+    "latency_sec_total": 12.143526834028307,
+    "models_used": [
+      "composer-2",
+      "composer-2",
+      "composer-2.5"
+    ],
+    "stages": [
+      "normalize",
+      "classify",
+      "format"
+    ],
+    "intent": "access",
+    "urgency": "medium",
+    "product": "auth",
+    "decision": "queue",
+    "summary": "Auth login issue, password vs 2FA unclear",
+    "match_intent": true,
+    "match_decision": true
+  },
+  {
+    "id": "feature_mixed",
+    "category": "mixed",
+    "mode": "monolithic",
+    "ok": true,
+    "error": null,
+    "expect": {
+      "intent": "feature",
+      "urgency": "low",
+      "product": "web",
+      "decision": "auto_reply"
+    },
+    "llm_calls": 1,
+    "latency_sec_total": 4.491451083973516,
+    "models_used": [
+      "composer-2.5"
+    ],
+    "stages": [
+      "monolithic"
+    ],
+    "intent": "feature",
+    "urgency": "low",
+    "product": "web",
+    "decision": "queue",
+    "summary": "CSV export from dashboard for analytics (not urgent)",
+    "match_intent": true,
+    "match_decision": false
+  },
+  {
+    "id": "feature_mixed",
+    "category": "mixed",
+    "mode": "multistage",
+    "ok": true,
+    "error": null,
+    "expect": {
+      "intent": "feature",
+      "urgency": "low",
+      "product": "web",
+      "decision": "auto_reply"
+    },
+    "llm_calls": 3,
+    "latency_sec_total": 9.594703540962655,
+    "models_used": [
+      "composer-2",
+      "composer-2",
+      "composer-2.5"
+    ],
+    "stages": [
+      "normalize",
+      "classify",
+      "format"
+    ],
+    "intent": "feature",
+    "urgency": "low",
+    "product": "web",
+    "decision": "queue",
+    "summary": "Low-priority feature request, not FAQ",
+    "match_intent": true,
+    "match_decision": false
+  },
+  {
+    "id": "billing_high",
+    "category": "high_risk",
+    "mode": "monolithic",
+    "ok": true,
+    "error": null,
+    "expect": {
+      "intent": "billing",
+      "urgency": "high",
+      "product": "payments",
+      "decision": "escalate"
+    },
+    "llm_calls": 1,
+    "latency_sec_total": 3.214788084034808,
+    "models_used": [
+      "composer-2.5"
+    ],
+    "stages": [
+      "monolithic"
+    ],
+    "intent": "bug",
+    "urgency": "critical",
+    "product": "payments",
+    "decision": "escalate",
+    "summary": "All-merchant payment webhook failure blocking revenue",
+    "match_intent": false,
+    "match_decision": true
+  },
+  {
+    "id": "billing_high",
+    "category": "high_risk",
+    "mode": "multistage",
+    "ok": true,
+    "error": null,
+    "expect": {
+      "intent": "billing",
+      "urgency": "high",
+      "product": "payments",
+      "decision": "escalate"
+    },
+    "llm_calls": 3,
+    "latency_sec_total": 8.12236770807067,
+    "models_used": [
+      "composer-2",
+      "composer-2",
+      "composer-2.5"
+    ],
+    "stages": [
+      "normalize",
+      "classify",
+      "format"
+    ],
+    "intent": "bug",
+    "urgency": "critical",
+    "product": "payments",
+    "decision": "escalate",
+    "summary": "critical payment webhook outage affecting all merchants",
+    "match_intent": false,
+    "match_decision": true
+  },
+  {
+    "id": "bug_mobile_medium",
+    "category": "clear",
+    "mode": "monolithic",
+    "ok": true,
+    "error": null,
+    "expect": {
+      "intent": "bug",
+      "urgency": "medium",
+      "product": "mobile",
+      "decision": "queue"
+    },
+    "llm_calls": 1,
+    "latency_sec_total": 3.2289461249602027,
+    "models_used": [
+      "composer-2.5"
+    ],
+    "stages": [
+      "monolithic"
+    ],
+    "intent": "bug",
+    "urgency": "medium",
+    "product": "mobile",
+    "decision": "queue",
+    "summary": "Settings screen crash on iOS 18",
+    "match_intent": true,
+    "match_decision": true
+  },
+  {
+    "id": "bug_mobile_medium",
+    "category": "clear",
+    "mode": "multistage",
+    "ok": true,
+    "error": null,
+    "expect": {
+      "intent": "bug",
+      "urgency": "medium",
+      "product": "mobile",
+      "decision": "queue"
+    },
+    "llm_calls": 3,
+    "latency_sec_total": 12.64412537496537,
+    "models_used": [
+      "composer-2",
+      "composer-2",
+      "composer-2.5"
+    ],
+    "stages": [
+      "normalize",
+      "classify",
+      "format"
+    ],
+    "intent": "bug",
+    "urgency": "high",
+    "product": "mobile",
+    "decision": "escalate",
+    "summary": "High-urgency iOS 18 Settings crash bug on mobile",
+    "match_intent": true,
+    "match_decision": false
+  },
+  {
+    "id": "other_unclear",
+    "category": "ambiguous",
+    "mode": "monolithic",
+    "ok": true,
+    "error": null,
+    "expect": {
+      "intent": "other",
+      "urgency": "low",
+      "product": "unknown",
+      "decision": "queue"
+    },
+    "llm_calls": 1,
+    "latency_sec_total": 4.092883999983314,
+    "models_used": [
+      "composer-2.5"
+    ],
+    "stages": [
+      "monolithic"
+    ],
+    "intent": "other",
+    "urgency": "low",
+    "product": "unknown",
+    "decision": "queue",
+    "summary": "Vague unclear issue report",
+    "match_intent": true,
+    "match_decision": true
+  },
+  {
+    "id": "other_unclear",
+    "category": "ambiguous",
+    "mode": "multistage",
+    "ok": true,
+    "error": null,
+    "expect": {
+      "intent": "other",
+      "urgency": "low",
+      "product": "unknown",
+      "decision": "queue"
+    },
+    "llm_calls": 3,
+    "latency_sec_total": 9.408297666988801,
+    "models_used": [
+      "composer-2",
+      "composer-2",
+      "composer-2.5"
+    ],
+    "stages": [
+      "normalize",
+      "classify",
+      "format"
+    ],
+    "intent": "bug",
+    "urgency": "medium",
+    "product": "unknown",
+    "decision": "queue",
+    "summary": "medium-urgency unclear bug report",
+    "match_intent": false,
+    "match_decision": true
+  }
+]

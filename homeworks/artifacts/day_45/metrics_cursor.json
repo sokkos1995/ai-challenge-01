@@ -1,0 +1,52 @@
+{
+  "total": 30,
+  "handled_by_micro": 25,
+  "escalated_fallback": 5,
+  "micro_ids": [
+    "faq_capitals",
+    "faq_timezone",
+    "faq_http",
+    "faq_git",
+    "code_bug",
+    "code_refactor",
+    "code_review",
+    "code_test",
+    "action_create",
+    "action_complete",
+    "action_list",
+    "rag_agents",
+    "rag_day43",
+    "chitchat_hi",
+    "chitchat_thanks",
+    "border_code_or_faq",
+    "border_action_or_faq",
+    "border_rag_or_faq",
+    "border_typo",
+    "complex_ru_en",
+    "complex_noisy",
+    "complex_legalish",
+    "simple_other_weather",
+    "simple_other_joke",
+    "complex_tool_vs_code"
+  ],
+  "fallback_ids": [
+    "border_mixed_short",
+    "complex_mixed",
+    "complex_ambiguous_pronoun",
+    "complex_multi_intent",
+    "border_emptyish"
+  ],
+  "reason_counts": {
+    "status_unsure": 5,
+    "low_confidence": 5
+  },
+  "avg_llm_calls": 1.167,
+  "fallback_llm_calls": 5,
+  "avg_latency_sec": 5.8685,
+  "label_accuracy": 0.8,
+  "backend": "cursor",
+  "micro_model": "composer-2",
+  "fallback_model": "composer-2.5",
+  "min_confidence": 0.6,
+  "errors": []
+}

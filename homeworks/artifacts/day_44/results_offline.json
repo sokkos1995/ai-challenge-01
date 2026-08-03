@@ -1,0 +1,34 @@
+[
+  {
+    "id": "bug_critical_noisy",
+    "category": "noisy",
+    "mode": "multistage",
+    "ok": true,
+    "error": null,
+    "expect": {
+      "intent": "bug",
+      "urgency": "critical",
+      "product": "api",
+      "decision": "escalate"
+    },
+    "llm_calls": 3,
+    "latency_sec_total": 0.03,
+    "models_used": [
+      "offline-cheap",
+      "offline-cheap",
+      "offline-strong"
+    ],
+    "stages": [
+      "normalize",
+      "classify",
+      "format"
+    ],
+    "intent": "bug",
+    "urgency": "critical",
+    "product": "api",
+    "decision": "escalate",
+    "summary": "Offline triage for bug_critical_noisy",
+    "match_intent": true,
+    "match_decision": true
+  }
+]

@@ -1,0 +1,90 @@
+[
+  {
+    "id": "billing_clear",
+    "category": "clear",
+    "text": "Hi, I was charged twice for the same invoice #INV-1024. How do I get a refund?",
+    "expect": {
+      "intent": "billing",
+      "urgency": "low",
+      "product": "payments",
+      "decision": "auto_reply"
+    }
+  },
+  {
+    "id": "bug_critical_noisy",
+    "category": "noisy",
+    "text": "URGENT!!! api /v2/checkout keeps returning HTTP 500 since 03:00 UTC — production is DOWN plz escalate ASAP!!!!!!",
+    "expect": {
+      "intent": "bug",
+      "urgency": "critical",
+      "product": "api",
+      "decision": "escalate"
+    }
+  },
+  {
+    "id": "spam_promo",
+    "category": "spam",
+    "text": "🔥 BUY CHEAP FOLLOWERS NOW click http://spam.example/deal LIMITED OFFER!!!",
+    "expect": {
+      "intent": "spam",
+      "urgency": "low",
+      "product": "unknown",
+      "decision": "reject"
+    }
+  },
+  {
+    "id": "access_ambiguous",
+    "category": "ambiguous",
+    "text": "не могу войти... то ли пароль, то ли 2FA, вроде auth web, помогите?",
+    "expect": {
+      "intent": "access",
+      "urgency": "medium",
+      "product": "auth",
+      "decision": "queue"
+    }
+  },
+  {
+    "id": "feature_mixed",
+    "category": "mixed",
+    "text": "Would be nice to export CSV from the dashboard. Не срочно, просто идея for analytics.",
+    "expect": {
+      "intent": "feature",
+      "urgency": "low",
+      "product": "web",
+      "decision": "auto_reply"
+    }
+  },
+  {
+    "id": "billing_high",
+    "category": "high_risk",
+    "text": "Payment webhook failed for all merchants — revenue pipeline broken, need someone NOW",
+    "expect": {
+      "intent": "billing",
+      "urgency": "high",
+      "product": "payments",
+      "decision": "escalate"
+    }
+  },
+  {
+    "id": "bug_mobile_medium",
+    "category": "clear",
+    "text": "Mobile app crashes when opening Settings on iOS 18. Not blocking login but annoying.",
+    "expect": {
+      "intent": "bug",
+      "urgency": "medium",
+      "product": "mobile",
+      "decision": "queue"
+    }
+  },
+  {
+    "id": "other_unclear",
+    "category": "ambiguous",
+    "text": "asdf qwerty ??? something broke maybe idk",
+    "expect": {
+      "intent": "other",
+      "urgency": "low",
+      "product": "unknown",
+      "decision": "queue"
+    }
+  }
+]
