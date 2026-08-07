@@ -1,0 +1,508 @@
+{
+  "generated_at": "2026-08-07T04:38:57Z",
+  "offline": true,
+  "max_iters": 3,
+  "tasks": [
+    {
+      "task_id": "save_auth_token",
+      "prompt": "сохрани токен авторизации",
+      "ok": true,
+      "commit_status": "committed",
+      "iterations": [
+        {
+          "n": 1,
+          "phase": "generate",
+          "ok": true,
+          "detail": "wrote auth_token_store.py",
+          "gateway_status": "clean",
+          "security_decision": "",
+          "findings": []
+        },
+        {
+          "n": 1,
+          "phase": "tests",
+          "ok": true,
+          "detail": "ok",
+          "gateway_status": "",
+          "security_decision": "",
+          "findings": []
+        },
+        {
+          "n": 1,
+          "phase": "security",
+          "ok": false,
+          "detail": "исправь: hardcoded sk- API key in source в строке 7",
+          "gateway_status": "redacted",
+          "security_decision": "regen",
+          "findings": [
+            {
+              "severity": "Critical",
+              "line": 7,
+              "detail": "hardcoded sk- API key in source",
+              "kind": "hardcoded_api_key",
+              "source": "heuristic"
+            }
+          ]
+        },
+        {
+          "n": 2,
+          "phase": "generate",
+          "ok": true,
+          "detail": "wrote auth_token_store.py",
+          "gateway_status": "clean",
+          "security_decision": "",
+          "findings": []
+        },
+        {
+          "n": 2,
+          "phase": "tests",
+          "ok": true,
+          "detail": "ok",
+          "gateway_status": "",
+          "security_decision": "",
+          "findings": []
+        },
+        {
+          "n": 2,
+          "phase": "security",
+          "ok": true,
+          "detail": "commit",
+          "gateway_status": "clean",
+          "security_decision": "commit",
+          "findings": []
+        },
+        {
+          "n": 2,
+          "phase": "commit",
+          "ok": true,
+          "detail": "dry-run commit → save_auth_token_auth_token_store.py",
+          "gateway_status": "",
+          "security_decision": "commit",
+          "findings": []
+        }
+      ],
+      "security_findings": [
+        {
+          "severity": "Critical",
+          "line": 7,
+          "detail": "hardcoded sk- API key in source",
+          "kind": "hardcoded_api_key",
+          "source": "heuristic"
+        }
+      ],
+      "security_caught": [
+        "hardcoded_api_key"
+      ],
+      "gateway_events": [
+        {
+          "stage": "generate:save_auth_token:1",
+          "blocked": false,
+          "blocked_stage": null,
+          "findings": [],
+          "warnings": [],
+          "audit_id": "",
+          "status": "clean",
+          "answer_preview": "\"\"\"Insecure: hardcoded token and write to plaintext file.\"\"\"\nfrom __future__ import annotations\n\nfrom pathlib import Path\n\n# BAD: secret in source\nDEFAULT_TOKEN = \"sk-proj-abc1234567890xyzDEMO\"\nTOKEN_",
+          "live": false,
+          "model": "offline",
+          "error": ""
+        },
+        {
+          "stage": "security:save_auth_token:1",
+          "blocked": false,
+          "blocked_stage": null,
+          "findings": [
+            "api_key"
+          ],
+          "warnings": [
+            "Input Guard: detected secrets (api_key)",
+            "Secrets redacted; request forwarded to LLM"
+          ],
+          "audit_id": "",
+          "status": "redacted",
+          "answer_preview": "{\"findings\": []}",
+          "live": false,
+          "model": "offline",
+          "error": ""
+        },
+        {
+          "stage": "generate:save_auth_token:2",
+          "blocked": false,
+          "blocked_stage": null,
+          "findings": [],
+          "warnings": [],
+          "audit_id": "",
+          "status": "clean",
+          "answer_preview": "\"\"\"Secure: token only from argument / env, never hardcoded.\"\"\"\nfrom __future__ import annotations\n\nimport os\nfrom pathlib import Path\n\nTOKEN_PATH = Path(os.environ.get(\"AUTH_TOKEN_PATH\", \".auth_token_",
+          "live": false,
+          "model": "offline",
+          "error": ""
+        },
+        {
+          "stage": "security:save_auth_token:2",
+          "blocked": false,
+          "blocked_stage": null,
+          "findings": [],
+          "warnings": [],
+          "audit_id": "",
+          "status": "clean",
+          "answer_preview": "{\"findings\": []}",
+          "live": false,
+          "model": "offline",
+          "error": ""
+        }
+      ],
+      "gateway_caught": [
+        "api_key"
+      ],
+      "gateway_clean_count": 3,
+      "missed_by_both": [],
+      "warnings": [],
+      "final_path": "/Users/konstantinsokolov/dev/projects/pet_projects/ai_challenge/hw/hw01/homeworks/artifacts/day_49/committed/save_auth_token_auth_token_store.py",
+      "elapsed_sec": 0.056
+    },
+    {
+      "task_id": "log_all_requests",
+      "prompt": "добавь логирование всех запросов",
+      "ok": true,
+      "commit_status": "committed",
+      "iterations": [
+        {
+          "n": 1,
+          "phase": "generate",
+          "ok": true,
+          "detail": "wrote request_logger.py",
+          "gateway_status": "clean",
+          "security_decision": "",
+          "findings": []
+        },
+        {
+          "n": 1,
+          "phase": "tests",
+          "ok": true,
+          "detail": "ok",
+          "gateway_status": "",
+          "security_decision": "",
+          "findings": []
+        },
+        {
+          "n": 1,
+          "phase": "security",
+          "ok": false,
+          "detail": "исправь: logging/printing sensitive fields (token/password/Authorization) в строке 13; исправь: logging/printing sensitive fields (token/password/Authorization) в строке 14",
+          "gateway_status": "clean",
+          "security_decision": "regen",
+          "findings": [
+            {
+              "severity": "High",
+              "line": 13,
+              "detail": "logging/printing sensitive fields (token/password/Authorization)",
+              "kind": "pii_in_logs",
+              "source": "llm"
+            },
+            {
+              "severity": "High",
+              "line": 14,
+              "detail": "logging/printing sensitive fields (token/password/Authorization)",
+              "kind": "pii_in_logs",
+              "source": "llm"
+            }
+          ]
+        },
+        {
+          "n": 2,
+          "phase": "generate",
+          "ok": true,
+          "detail": "wrote request_logger.py",
+          "gateway_status": "clean",
+          "security_decision": "",
+          "findings": []
+        },
+        {
+          "n": 2,
+          "phase": "tests",
+          "ok": true,
+          "detail": "ok",
+          "gateway_status": "",
+          "security_decision": "",
+          "findings": []
+        },
+        {
+          "n": 2,
+          "phase": "security",
+          "ok": true,
+          "detail": "commit",
+          "gateway_status": "clean",
+          "security_decision": "commit",
+          "findings": []
+        },
+        {
+          "n": 2,
+          "phase": "commit",
+          "ok": true,
+          "detail": "dry-run commit → log_all_requests_request_logger.py",
+          "gateway_status": "",
+          "security_decision": "commit",
+          "findings": []
+        }
+      ],
+      "security_findings": [
+        {
+          "severity": "High",
+          "line": 13,
+          "detail": "logging/printing sensitive fields (token/password/Authorization)",
+          "kind": "pii_in_logs",
+          "source": "llm"
+        },
+        {
+          "severity": "High",
+          "line": 14,
+          "detail": "logging/printing sensitive fields (token/password/Authorization)",
+          "kind": "pii_in_logs",
+          "source": "llm"
+        }
+      ],
+      "security_caught": [
+        "pii_in_logs"
+      ],
+      "gateway_events": [
+        {
+          "stage": "generate:log_all_requests:1",
+          "blocked": false,
+          "blocked_stage": null,
+          "findings": [],
+          "warnings": [],
+          "audit_id": "",
+          "status": "clean",
+          "answer_preview": "\"\"\"Insecure: logs Authorization header and tokens.\"\"\"\nfrom __future__ import annotations\n\nimport logging\nfrom typing import Mapping\n\nlogger = logging.getLogger(\"requests\")\n\n\ndef log_request(method: st",
+          "live": false,
+          "model": "offline",
+          "error": ""
+        },
+        {
+          "stage": "security:log_all_requests:1",
+          "blocked": false,
+          "blocked_stage": null,
+          "findings": [],
+          "warnings": [],
+          "audit_id": "",
+          "status": "clean",
+          "answer_preview": "{\"findings\": [{\"severity\": \"High\", \"line\": 13, \"detail\": \"logging/printing sensitive fields (token/password/Authorization)\", \"kind\": \"pii_in_logs\"}, {\"severity\": \"High\", \"line\": 14, \"detail\": \"logging",
+          "live": false,
+          "model": "offline",
+          "error": ""
+        },
+        {
+          "stage": "generate:log_all_requests:2",
+          "blocked": false,
+          "blocked_stage": null,
+          "findings": [],
+          "warnings": [],
+          "audit_id": "",
+          "status": "clean",
+          "answer_preview": "\"\"\"Secure: redact Authorization and token-like headers before logging.\"\"\"\nfrom __future__ import annotations\n\nimport logging\nfrom typing import Mapping\n\nlogger = logging.getLogger(\"requests\")\n\n_REDACT",
+          "live": false,
+          "model": "offline",
+          "error": ""
+        },
+        {
+          "stage": "security:log_all_requests:2",
+          "blocked": false,
+          "blocked_stage": null,
+          "findings": [],
+          "warnings": [],
+          "audit_id": "",
+          "status": "clean",
+          "answer_preview": "{\"findings\": []}",
+          "live": false,
+          "model": "offline",
+          "error": ""
+        }
+      ],
+      "gateway_caught": [],
+      "gateway_clean_count": 4,
+      "missed_by_both": [],
+      "warnings": [],
+      "final_path": "/Users/konstantinsokolov/dev/projects/pet_projects/ai_challenge/hw/hw01/homeworks/artifacts/day_49/committed/log_all_requests_request_logger.py",
+      "elapsed_sec": 0.075
+    },
+    {
+      "task_id": "api_request",
+      "prompt": "сделай запрос на API",
+      "ok": true,
+      "commit_status": "committed",
+      "iterations": [
+        {
+          "n": 1,
+          "phase": "generate",
+          "ok": true,
+          "detail": "wrote api_client.py",
+          "gateway_status": "clean",
+          "security_decision": "",
+          "findings": []
+        },
+        {
+          "n": 1,
+          "phase": "tests",
+          "ok": true,
+          "detail": "ok",
+          "gateway_status": "",
+          "security_decision": "",
+          "findings": []
+        },
+        {
+          "n": 1,
+          "phase": "security",
+          "ok": false,
+          "detail": "исправь: hardcoded sk- API key in source в строке 6",
+          "gateway_status": "redacted",
+          "security_decision": "regen",
+          "findings": [
+            {
+              "severity": "Medium",
+              "line": 7,
+              "detail": "HTTP URL used instead of HTTPS",
+              "kind": "http_not_https",
+              "source": "llm"
+            },
+            {
+              "severity": "Critical",
+              "line": 6,
+              "detail": "hardcoded sk- API key in source",
+              "kind": "hardcoded_api_key",
+              "source": "heuristic"
+            }
+          ]
+        },
+        {
+          "n": 2,
+          "phase": "generate",
+          "ok": true,
+          "detail": "wrote api_client.py",
+          "gateway_status": "clean",
+          "security_decision": "",
+          "findings": []
+        },
+        {
+          "n": 2,
+          "phase": "tests",
+          "ok": true,
+          "detail": "ok",
+          "gateway_status": "",
+          "security_decision": "",
+          "findings": []
+        },
+        {
+          "n": 2,
+          "phase": "security",
+          "ok": true,
+          "detail": "commit",
+          "gateway_status": "clean",
+          "security_decision": "commit",
+          "findings": []
+        },
+        {
+          "n": 2,
+          "phase": "commit",
+          "ok": true,
+          "detail": "dry-run commit → api_request_api_client.py",
+          "gateway_status": "",
+          "security_decision": "commit",
+          "findings": []
+        }
+      ],
+      "security_findings": [
+        {
+          "severity": "Medium",
+          "line": 7,
+          "detail": "HTTP URL used instead of HTTPS",
+          "kind": "http_not_https",
+          "source": "llm"
+        },
+        {
+          "severity": "Critical",
+          "line": 6,
+          "detail": "hardcoded sk- API key in source",
+          "kind": "hardcoded_api_key",
+          "source": "heuristic"
+        }
+      ],
+      "security_caught": [
+        "hardcoded_api_key",
+        "http_not_https"
+      ],
+      "gateway_events": [
+        {
+          "stage": "generate:api_request:1",
+          "blocked": false,
+          "blocked_stage": null,
+          "findings": [],
+          "warnings": [],
+          "audit_id": "",
+          "status": "clean",
+          "answer_preview": "\"\"\"Insecure: http:// and API key embedded in URL.\"\"\"\nfrom __future__ import annotations\n\nimport urllib.request\n\nAPI_KEY = \"sk-proj-abc1234567890xyzDEMO\"\nBASE = \"http://api.example.com/v1/data\"\n\n\ndef f",
+          "live": false,
+          "model": "offline",
+          "error": ""
+        },
+        {
+          "stage": "security:api_request:1",
+          "blocked": false,
+          "blocked_stage": null,
+          "findings": [
+            "api_key"
+          ],
+          "warnings": [
+            "Input Guard: detected secrets (api_key)",
+            "Secrets redacted; request forwarded to LLM"
+          ],
+          "audit_id": "",
+          "status": "redacted",
+          "answer_preview": "{\"findings\": [{\"severity\": \"Medium\", \"line\": 7, \"detail\": \"HTTP URL used instead of HTTPS\", \"kind\": \"http_not_https\"}]}",
+          "live": false,
+          "model": "offline",
+          "error": ""
+        },
+        {
+          "stage": "generate:api_request:2",
+          "blocked": false,
+          "blocked_stage": null,
+          "findings": [],
+          "warnings": [],
+          "audit_id": "",
+          "status": "clean",
+          "answer_preview": "\"\"\"Secure: HTTPS + key from env header.\"\"\"\nfrom __future__ import annotations\n\nimport os\nimport urllib.request\n\n\ndef fetch(path: str = \"\", *, base: str | None = None) -> bytes:\n    root = (base or os.",
+          "live": false,
+          "model": "offline",
+          "error": ""
+        },
+        {
+          "stage": "security:api_request:2",
+          "blocked": false,
+          "blocked_stage": null,
+          "findings": [],
+          "warnings": [],
+          "audit_id": "",
+          "status": "clean",
+          "answer_preview": "{\"findings\": []}",
+          "live": false,
+          "model": "offline",
+          "error": ""
+        }
+      ],
+      "gateway_caught": [
+        "api_key"
+      ],
+      "gateway_clean_count": 3,
+      "missed_by_both": [],
+      "warnings": [],
+      "final_path": "/Users/konstantinsokolov/dev/projects/pet_projects/ai_challenge/hw/hw01/homeworks/artifacts/day_49/committed/api_request_api_client.py",
+      "elapsed_sec": 0.091
+    }
+  ],
+  "summary": {
+    "committed": 3,
+    "failed": 0,
+    "blocked": 0
+  }
+}

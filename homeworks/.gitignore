@@ -25,6 +25,8 @@ artifacts/day_38/webapp_stderr.log
 !artifacts/day_47/**
 !artifacts/day_48/
 !artifacts/day_48/**
+!artifacts/day_49/
+!artifacts/day_49/**
 
 # После !artifacts/day_*/** снова игнорируем bytecode
 artifacts/**/__pycache__/
