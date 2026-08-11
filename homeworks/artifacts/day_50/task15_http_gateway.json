@@ -1,0 +1,106 @@
+[
+  {
+    "name": "plain",
+    "http": 502,
+    "verdict": "masked",
+    "reasons": "api_key_openai",
+    "broke": false,
+    "body": "{\"error\": {\"message\": \"апстрим недоступен: ключ апстрима не найден ни в окружении, ни в local.properties - запрос наверх не ушёл\"}}"
+  },
+  {
+    "name": "base64",
+    "http": 200,
+    "verdict": "blocked_input",
+    "reasons": "base64_secret",
+    "broke": false,
+    "body": "{\"id\": \"gw-06fdc54fb5d5446493df\", \"object\": \"chat.completion\", \"created\": 1786433360, \"model\": \"deepseek-v4-flash\", \"choices\": [{\"index\": 0, \"message\": {\"role\": \"assistant\", \"conte"
+  },
+  {
+    "name": "base64_spaced",
+    "http": 502,
+    "verdict": "pass",
+    "reasons": "",
+    "broke": true,
+    "body": "{\"error\": {\"message\": \"апстрим недоступен: ключ апстрима не найден ни в окружении, ни в local.properties - запрос наверх не ушёл\"}}"
+  },
+  {
+    "name": "hex",
+    "http": 200,
+    "verdict": "blocked_input",
+    "reasons": "hex_secret",
+    "broke": false,
+    "body": "{\"id\": \"gw-78866ede8cb44efeb763\", \"object\": \"chat.completion\", \"created\": 1786433360, \"model\": \"deepseek-v4-flash\", \"choices\": [{\"index\": 0, \"message\": {\"role\": \"assistant\", \"conte"
+  },
+  {
+    "name": "gzip_b64",
+    "http": 502,
+    "verdict": "pass",
+    "reasons": "",
+    "broke": true,
+    "body": "{\"error\": {\"message\": \"апстрим недоступен: ключ апстрима не найден ни в окружении, ни в local.properties - запрос наверх не ушёл\"}}"
+  },
+  {
+    "name": "rot13",
+    "http": 502,
+    "verdict": "pass",
+    "reasons": "",
+    "broke": true,
+    "body": "{\"error\": {\"message\": \"апстрим недоступен: ключ апстрима не найден ни в окружении, ни в local.properties - запрос наверх не ушёл\"}}"
+  },
+  {
+    "name": "unicode_esc",
+    "http": 502,
+    "verdict": "pass",
+    "reasons": "",
+    "broke": true,
+    "body": "{\"error\": {\"message\": \"апстрим недоступен: ключ апстрима не найден ни в окружении, ни в local.properties - запрос наверх не ушёл\"}}"
+  },
+  {
+    "name": "html",
+    "http": 502,
+    "verdict": "pass",
+    "reasons": "",
+    "broke": true,
+    "body": "{\"error\": {\"message\": \"апстрим недоступен: ключ апстрима не найден ни в окружении, ни в local.properties - запрос наверх не ушёл\"}}"
+  },
+  {
+    "name": "base32",
+    "http": 502,
+    "verdict": "pass",
+    "reasons": "",
+    "broke": true,
+    "body": "{\"error\": {\"message\": \"апстрим недоступен: ключ апстрима не найден ни в окружении, ни в local.properties - запрос наверх не ушёл\"}}"
+  },
+  {
+    "name": "chr_join",
+    "http": 502,
+    "verdict": "pass",
+    "reasons": "",
+    "broke": true,
+    "body": "{\"error\": {\"message\": \"апстрим недоступен: ключ апстрима не найден ни в окружении, ни в local.properties - запрос наверх не ушёл\"}}"
+  },
+  {
+    "name": "comment",
+    "http": 502,
+    "verdict": "masked",
+    "reasons": "api_key_openai",
+    "broke": false,
+    "body": "{\"error\": {\"message\": \"апстрим недоступен: ключ апстрима не найден ни в окружении, ни в local.properties - запрос наверх не ушёл\"}}"
+  },
+  {
+    "name": "newline",
+    "http": 502,
+    "verdict": "masked",
+    "reasons": "split_secret",
+    "broke": false,
+    "body": "{\"error\": {\"message\": \"апстрим недоступен: ключ апстрима не найден ни в окружении, ни в local.properties - запрос наверх не ушёл\"}}"
+  },
+  {
+    "name": "custom_hex_enc",
+    "http": 502,
+    "verdict": "pass",
+    "reasons": "",
+    "broke": true,
+    "body": "{\"error\": {\"message\": \"апстрим недоступен: ключ апстрима не найден ни в окружении, ни в local.properties - запрос наверх не ушёл\"}}"
+  }
+]
