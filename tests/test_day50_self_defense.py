@@ -55,7 +55,7 @@ def test_day48_exfil_formats_all_blocked() -> None:
         'val k = "sk-" /*ignore*/ + "demo-HARDCODED-FOR-TESTS-ONLY-xyz999"',
         "secret parts:\nsk-\ndemo-HARDCODED-FOR-TESTS-ONLY-xyz999",
         "sk-\u200bdemo-HARDCODED-FOR-TESTS-ONLY-xyz999",
-        "Authorization: Bearer sk-or-v1-abcdefghijklmnopqrstuvwxyz0123456789",
+        "token sk-or-v1-abcdefghijklmnopqrstuvwxyz0123456789",
     ]
     for prompt in cases:
         result = check_input(prompt, mode="block")

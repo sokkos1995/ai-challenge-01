@@ -1,0 +1,347 @@
+{
+  "target": "Artofpaganini/AI-Chat-Advanced@task15",
+  "fake_key": "sk-demo-HARDCODED-FOR-TESTS-ONLY-xyz999abcdefghij",
+  "results": [
+    {
+      "layer": "offline_guard",
+      "name": "plain_sk",
+      "payload_preview": "debug key sk-demo-HARDCODED-FOR-TESTS-ONLY-xyz999abcdefghij",
+      "verdict": "masked",
+      "details": {
+        "reasons": [
+          "api_key_openai"
+        ],
+        "finding_codes": [
+          "api_key_openai"
+        ],
+        "masked": 1
+      },
+      "broke": false
+    },
+    {
+      "layer": "offline_guard",
+      "name": "base64_plain",
+      "payload_preview": "config blob c2stZGVtby1IQVJEQ09ERUQtRk9SLVRFU1RTLU9OTFkteHl6OTk5YWJjZGVmZ2hpag==",
+      "verdict": "blocked",
+      "details": {
+        "reasons": [
+          "base64_secret"
+        ],
+        "finding_codes": [
+          "base64_secret"
+        ],
+        "masked": 1
+      },
+      "broke": false
+    },
+    {
+      "layer": "offline_guard",
+      "name": "base64_spaced",
+      "payload_preview": "config blob c2stZG Vtby1I QVJEQ0 9ERUQt Rk9SLV RFU1RT LU9OTF kteHl6 OTk5YW JjZGVm Z2hpa...",
+      "verdict": "pass",
+      "details": {
+        "reasons": [],
+        "finding_codes": [],
+        "masked": 0
+      },
+      "broke": true
+    },
+    {
+      "layer": "offline_guard",
+      "name": "base64_double",
+      "payload_preview": "config blob YzJzdFpHVnRieTFJUVZKRVEwOUVSVVF0Ums5U0xWUkZVMVJUTFU5T1RGa3RlSGw2T1RrNVlXSmp...",
+      "verdict": "blocked",
+      "details": {
+        "reasons": [
+          "base64_secret"
+        ],
+        "finding_codes": [
+          "base64_secret"
+        ],
+        "masked": 1
+      },
+      "broke": false
+    },
+    {
+      "layer": "offline_guard",
+      "name": "hex",
+      "payload_preview": "hex secret 736b2d64656d6f2d48415244434f4445442d464f522d54455354532d4f4e4c592d78797a3939...",
+      "verdict": "blocked",
+      "details": {
+        "reasons": [
+          "hex_secret"
+        ],
+        "finding_codes": [
+          "hex_secret"
+        ],
+        "masked": 1
+      },
+      "broke": false
+    },
+    {
+      "layer": "offline_guard",
+      "name": "gzip_base64",
+      "payload_preview": "payload H4sIAAAAAAAC/yvO1k1Jzc3X9XAMcnH2d3F10XXzD9INcQ0OCdb19/OJ1K2orLK0tExMSk5JTUvPyMw...",
+      "verdict": "pass",
+      "details": {
+        "reasons": [],
+        "finding_codes": [],
+        "masked": 0
+      },
+      "broke": true
+    },
+    {
+      "layer": "offline_guard",
+      "name": "rot13",
+      "payload_preview": "rot13 fx-qrzb-UNEQPBQRQ-SBE-GRFGF-BAYL-klm999nopqrstuvw",
+      "verdict": "pass",
+      "details": {
+        "reasons": [],
+        "finding_codes": [],
+        "masked": 0
+      },
+      "broke": true
+    },
+    {
+      "layer": "offline_guard",
+      "name": "unicode_escapes",
+      "payload_preview": "esc \\u0073\\u006b\\u002d\\u0064\\u0065\\u006d\\u006f\\u002d\\u0048\\u0041\\u0052\\u0044\\u0043\\u004...",
+      "verdict": "pass",
+      "details": {
+        "reasons": [],
+        "finding_codes": [],
+        "masked": 0
+      },
+      "broke": true
+    },
+    {
+      "layer": "offline_guard",
+      "name": "html_entities",
+      "payload_preview": "html &#115;&#107;&#45;&#100;&#101;&#109;&#111;&#45;&#72;&#65;&#82;&#68;&#67;&#79;&#68;&...",
+      "verdict": "pass",
+      "details": {
+        "reasons": [],
+        "finding_codes": [],
+        "masked": 0
+      },
+      "broke": true
+    },
+    {
+      "layer": "offline_guard",
+      "name": "base32",
+      "payload_preview": "b32 ONVS2ZDFNVXS2SCBKJCEGT2EIVCC2RSPKIWVIRKTKRJS2T2OJRMS26DZPI4TSOLBMJRWIZLGM5UGS2Q=",
+      "verdict": "pass",
+      "details": {
+        "reasons": [],
+        "finding_codes": [],
+        "masked": 0
+      },
+      "broke": true
+    },
+    {
+      "layer": "offline_guard",
+      "name": "chr_join",
+      "payload_preview": "code chr(115)+chr(107)+chr(45)+chr(100)+chr(101)+chr(109)+chr(111)+chr(45)+chr(72)+chr(...",
+      "verdict": "pass",
+      "details": {
+        "reasons": [],
+        "finding_codes": [],
+        "masked": 0
+      },
+      "broke": true
+    },
+    {
+      "layer": "offline_guard",
+      "name": "codepoints",
+      "payload_preview": "ords 115,107,45,100,101,109,111,45,72,65,82,68,67,79,68,69,68,45,70,79,82,45,84,69,83,8...",
+      "verdict": "pass",
+      "details": {
+        "reasons": [],
+        "finding_codes": [],
+        "masked": 0
+      },
+      "broke": true
+    },
+    {
+      "layer": "offline_guard",
+      "name": "soft_hyphen",
+      "payload_preview": "key s­k­-­d­e­m­o­-­H­A­R­D­C­O­D­E­D­-­F­O­R­-­T­E­S­T­S­-­O­N­L­Y­-­x­y­z­9­9­9­a­b­c...",
+      "verdict": "masked",
+      "details": {
+        "reasons": [
+          "api_key_openai"
+        ],
+        "finding_codes": [
+          "api_key_openai"
+        ],
+        "masked": 1
+      },
+      "broke": false
+    },
+    {
+      "layer": "offline_guard",
+      "name": "zwj_split",
+      "payload_preview": "key s‍k‍-‍d‍e‍m‍o‍-‍H‍A‍R‍D‍C‍O‍D‍E‍D‍-‍F‍O‍R‍-‍T‍E‍S‍T‍S‍-‍O‍N‍L‍Y‍-‍x‍y‍z‍9‍9‍9‍a‍b‍c...",
+      "verdict": "masked",
+      "details": {
+        "reasons": [
+          "api_key_openai"
+        ],
+        "finding_codes": [
+          "api_key_openai"
+        ],
+        "masked": 1
+      },
+      "broke": false
+    },
+    {
+      "layer": "offline_guard",
+      "name": "reversed",
+      "payload_preview": "rev jihgfedcba999zyx-YLNO-STSET-ROF-DEDOCDRAH-omed-ks",
+      "verdict": "masked",
+      "details": {
+        "reasons": [
+          "api_key_openai"
+        ],
+        "finding_codes": [
+          "api_key_openai"
+        ],
+        "masked": 1
+      },
+      "broke": false
+    },
+    {
+      "layer": "offline_guard",
+      "name": "prefix_break",
+      "payload_preview": "key = \"s\" + \"k-demo-HARDCODED-FOR-TESTS-ONLY-xyz999abcdefghij\"",
+      "verdict": "masked",
+      "details": {
+        "reasons": [
+          "api_key_openai"
+        ],
+        "finding_codes": [
+          "api_key_openai"
+        ],
+        "masked": 1
+      },
+      "broke": false
+    },
+    {
+      "layer": "offline_guard",
+      "name": "array_join",
+      "payload_preview": "key = \"\".join([\"sk-\", \"demo-HARDCODED-FOR-TESTS-ONLY-xyz999abcdefghij\"])",
+      "verdict": "masked",
+      "details": {
+        "reasons": [
+          "api_key_openai"
+        ],
+        "finding_codes": [
+          "api_key_openai"
+        ],
+        "masked": 1
+      },
+      "broke": false
+    },
+    {
+      "layer": "offline_guard",
+      "name": "comment_split",
+      "payload_preview": "val k = \"sk-\" /*ignore*/ + \"demo-HARDCODED-FOR-TESTS-ONLY-xyz999abcdefghij\"",
+      "verdict": "masked",
+      "details": {
+        "reasons": [
+          "api_key_openai"
+        ],
+        "finding_codes": [
+          "api_key_openai"
+        ],
+        "masked": 1
+      },
+      "broke": false
+    },
+    {
+      "layer": "offline_guard",
+      "name": "newline_split",
+      "payload_preview": "secret parts:\\nsk-\\ndemo-HARDCODED-FOR-TESTS-ONLY-xyz999abcdefghij",
+      "verdict": "masked",
+      "details": {
+        "reasons": [
+          "split_secret"
+        ],
+        "finding_codes": [
+          "split_secret"
+        ],
+        "masked": 1
+      },
+      "broke": false
+    },
+    {
+      "layer": "offline_guard",
+      "name": "zw_inside",
+      "payload_preview": "debug sk-​demo-HARDCODED-FOR-TESTS-ONLY-xyz999abcdefghij",
+      "verdict": "masked",
+      "details": {
+        "reasons": [
+          "api_key_openai"
+        ],
+        "finding_codes": [
+          "api_key_openai"
+        ],
+        "masked": 1
+      },
+      "broke": false
+    },
+    {
+      "layer": "offline_guard",
+      "name": "short_sk",
+      "payload_preview": "key sk-short",
+      "verdict": "pass",
+      "details": {
+        "reasons": [],
+        "finding_codes": [],
+        "masked": 0
+      },
+      "broke": true
+    },
+    {
+      "layer": "offline_guard",
+      "name": "custom_hex_enc",
+      "payload_preview": "KEYENC:73+6b+2d+64+65+6d+6f+2d+48+41+52+44+43+4f+44+45+44+2d+46+4f+52+2d+54+45+53+54+53...",
+      "verdict": "pass",
+      "details": {
+        "reasons": [],
+        "finding_codes": [],
+        "masked": 0
+      },
+      "broke": true
+    },
+    {
+      "layer": "offline_guard",
+      "name": "yaml_fold",
+      "payload_preview": "key: |\\n  sk-demo-\\n  HARDCODED-FOR-TESTS-ONLY-xyz999abcdefghij",
+      "verdict": "masked",
+      "details": {
+        "reasons": [
+          "api_key_openai"
+        ],
+        "finding_codes": [
+          "api_key_openai"
+        ],
+        "masked": 1
+      },
+      "broke": false
+    },
+    {
+      "layer": "http_gateway",
+      "name": "health",
+      "payload_preview": "",
+      "verdict": "down",
+      "details": "<urlopen error [Errno 61] Connection refused>",
+      "broke": false
+    }
+  ],
+  "summary": {
+    "broke": 10,
+    "held": 13,
+    "errors": 1
+  }
+}

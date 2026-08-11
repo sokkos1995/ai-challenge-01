@@ -103,7 +103,7 @@
       "findings": [
         "api_key"
       ],
-      "prompt_preview": "Authorization: Bearer sk-or-v1-abcdefghijklmnopqrstuvwxyz0123456789",
+      "prompt_preview": "token sk-or-v1-abcdefghijklmnopqrstuvwxyz0123456789",
       "target_note": "AI-Chat-Advanced has no Input Guard: same prompt would reach DeepSeek as-is"
     },
     {

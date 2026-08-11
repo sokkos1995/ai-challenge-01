@@ -1,0 +1,31 @@
+{
+  "requests_total": 147,
+  "by_verdict": {
+    "pass": 114,
+    "blocked_input": 14,
+    "masked": 18,
+    "rate_limited": 1
+  },
+  "by_source": {
+    "chat": {
+      "requests": 67,
+      "blocked": 12,
+      "masked": 18
+    },
+    "codegen": {
+      "requests": 38,
+      "blocked": 2,
+      "masked": 0
+    },
+    "security_review": {
+      "requests": 42,
+      "blocked": 0,
+      "masked": 0
+    }
+  },
+  "masked_count_total": 27,
+  "tokens_in_total": 153099,
+  "tokens_out_total": 250269,
+  "cost_usd_total": 0.091508,
+  "avg_latency_ms": 18969
+}
