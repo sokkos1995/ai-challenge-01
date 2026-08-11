@@ -7,3 +7,6 @@
 __pycache__/
 *.db
 workload/*
+
+# Day 50: local clone of partner target (do not commit)
+homeworks/artifacts/day_50/_target_clone/

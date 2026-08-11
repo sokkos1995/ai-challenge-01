@@ -27,6 +27,9 @@ artifacts/day_38/webapp_stderr.log
 !artifacts/day_48/**
 !artifacts/day_49/
 !artifacts/day_49/**
+!artifacts/day_50/
+!artifacts/day_50/**
+artifacts/day_50/_target_clone/
 
 # После !artifacts/day_*/** снова игнорируем bytecode
 artifacts/**/__pycache__/
