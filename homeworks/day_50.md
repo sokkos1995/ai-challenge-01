@@ -48,8 +48,9 @@ flowchart TD
 
 | Путь | Содержание |
 |------|------------|
+| [`artifacts/day_50/FOR_OPPONENT.md`](artifacts/day_50/FOR_OPPONENT.md) | **скинуть сопернику**: как поднять и куда бить |
 | [`artifacts/day_50/README.md`](artifacts/day_50/README.md) | battle README: запуск, endpoints, I/O |
-| [`day_50_attack.md`](day_50_attack.md) | отчёт атакующего |
+| [`day_50_attack.md`](day_50_attack.md) | отчёт атакующего (старый Jarvis-прогон; task15 — заново) |
 | [`artifacts/day_50/attack_results.json`](artifacts/day_50/attack_results.json) | логи/вердикты атак |
 | [`artifacts/day_50/payloads/`](artifacts/day_50/payloads/) | indirect / exfil payload’ы |
 | [`artifacts/day_50/evidence/`](artifacts/day_50/evidence/) | доказательство security bypass |
