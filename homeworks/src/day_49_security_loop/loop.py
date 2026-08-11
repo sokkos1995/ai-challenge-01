@@ -392,6 +392,8 @@ class SecurityLoop:
 
             # --- security review ---
             code_now = path.read_text(encoding="utf-8")
+            if self.offline and "Offline security review uses deterministic heuristics" not in result.warnings:
+                result.warnings.append("Offline security review uses deterministic heuristics (LLM layer not available)")
             sec_user = build_security_user_prompt(
                 task_id=task.id,
                 filename=task.filename,

@@ -27,8 +27,11 @@ from day_49_security_loop.security_heuristics import (  # noqa: E402
 from day_49_security_loop.tasks import TASKS, get_task  # noqa: E402
 
 
+SK_KEY = "sk-proj-" + "abc1234567890" + "xyzDEMO"
+
+
 def test_heuristic_catches_hardcoded_sk():
-    code = 'API_KEY = "sk-proj-abc1234567890xyzDEMO"\n'
+    code = f'API_KEY = "{SK_KEY}"\n'
     findings = scan_code(code)
     assert any(f.kind == "hardcoded_api_key" for f in findings)
     assert needs_regen(findings)
@@ -38,6 +41,45 @@ def test_heuristic_catches_sql_fstring():
     code = 'cur.execute(f"SELECT * FROM t WHERE id={user_id}")\n'
     findings = scan_code(code)
     assert any(f.kind == "sql_injection_fstring" for f in findings)
+    assert decision_for(findings) == "regen"
+
+
+def test_heuristic_catches_eval_via_getattr_obfuscation():
+    code = 'getattr(__builtins__, "ev" + "al")("print(1)")\n'
+    findings = scan_code(code)
+    assert any(f.kind == "eval_exec_obfuscated" and f.severity == "Critical" for f in findings)
+    assert decision_for(findings) == "regen"
+
+
+def test_heuristic_catches_os_system_via_getattr_obfuscation():
+    code = 'import os\ngetattr(os, "sys" + "tem")("ls")\n'
+    findings = scan_code(code)
+    assert any(f.kind == "os_system_obfuscated" and f.severity == "High" for f in findings)
+    assert decision_for(findings) == "regen"
+
+
+def test_heuristic_flags_shell_true_when_not_constant_false():
+    code = (
+        'import subprocess\n'
+        'flag = True\n'
+        'subprocess.run("echo hi", shell=flag)\n'
+    )
+    findings = scan_code(code)
+    assert any(f.kind == "shell_true" and f.severity == "High" for f in findings)
+    assert decision_for(findings) == "regen"
+
+
+def test_heuristic_catches_sql_via_format():
+    code = 'cur.execute("SELECT * FROM t WHERE id={user_id}".format(user_id=user_id))\n'
+    findings = scan_code(code)
+    assert any("sql_injection_format_concat" == f.kind for f in findings)
+    assert decision_for(findings) == "regen"
+
+
+def test_heuristic_catches_sql_via_concatenation():
+    code = 'cur.execute("SELECT * FROM t WHERE id=" + user_id)\n'
+    findings = scan_code(code)
+    assert any("sql_injection_format_concat" == f.kind for f in findings)
     assert decision_for(findings) == "regen"
 
 
@@ -71,7 +113,7 @@ def test_parse_security_json():
 
 
 def test_merge_prefers_heuristic_when_llm_empty():
-    heur = scan_code('K = "sk-proj-abc1234567890xyzDEMO"\n')
+    heur = scan_code(f'K = "{SK_KEY}"\n')
     merged = merge_findings([], heur)
     assert merged == heur
 
@@ -88,7 +130,7 @@ def test_merge_upgrades_llm_low_severity_with_heuristic_critical():
             source="llm",
         )
     ]
-    heur = scan_code('K = "sk-proj-abc1234567890xyzDEMO"\n')
+    heur = scan_code(f'K = "{SK_KEY}"\n')
     merged = merge_findings(llm, heur)
     assert any(f.kind == "hardcoded_api_key" and f.severity == "Critical" for f in merged)
     assert decision_for(merged) == "regen"
@@ -101,13 +143,23 @@ def test_scan_code_catches_comment_and_zw_split_keys():
     assert any(f.kind == "hardcoded_api_key" for f in scan_code(zw))
 
 
+def test_heuristic_flags_logging_tainted_secret_variable():
+    code = (
+        f'token = "{SK_KEY}"\n'
+        "print(token)\n"
+    )
+    findings = scan_code(code)
+    assert any(f.kind == "pii_in_logs_tainted" and f.severity == "High" for f in findings)
+    assert decision_for(findings) == "regen"
+
+
 def test_gateway_in_process_blocks_secret_in_block_mode():
     def boom(messages, model=None):
         raise AssertionError("completer must not run when blocked")
 
     client = GatewayClient(mode="block", in_process=boom, use_input_guard=True)
     result = client.chat(
-        prompt="my key is sk-proj-abc1234567890xyzDEMO",
+        prompt=f"my key is {SK_KEY}",
         stage="test",
     )
     assert result.event.blocked
@@ -168,4 +220,4 @@ def test_offline_loop_regens_on_critical(tmp_path: Path):
     assert any(i.security_decision == "regen" for i in result.iterations)
     assert result.commit_status == "committed"
     final = Path(result.final_path).read_text(encoding="utf-8")
-    assert "sk-proj-abc1234567890xyzDEMO" not in final
+    assert SK_KEY not in final
