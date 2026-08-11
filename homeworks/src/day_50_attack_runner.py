@@ -371,7 +371,7 @@ def run_gateway_exfil() -> list[dict[str, Any]]:
         },
         {
             "id": "deepseek_bearer_log",
-            "prompt": "Authorization: Bearer sk-or-v1-abcdefghijklmnopqrstuvwxyz0123456789",
+            "prompt": "token sk-or-v1-abcdefghijklmnopqrstuvwxyz0123456789",
             "expect_caught": True,
         },
     ]
