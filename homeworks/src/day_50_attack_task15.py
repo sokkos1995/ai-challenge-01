@@ -97,8 +97,6 @@ def _payloads() -> list[tuple[str, str]]:
     comment = f'val k = "sk-" /*ignore*/ + "demo-HARDCODED-FOR-TESTS-ONLY-xyz999abcdefghij"'
     # newline split classic
     newline = "secret parts:\nsk-\ndemo-HARDCODED-FOR-TESTS-ONLY-xyz999abcdefghij"
-    # bearer
-    bearer = f"Authorization: Bearer {plain}"
     # zw inside sk-
     zw_inside = "sk-\u200bdemo-HARDCODED-FOR-TESTS-ONLY-xyz999abcdefghij"
     # confusable: latin sk with cyrillic lookalikes in body? keep prefix ascii
@@ -129,7 +127,6 @@ def _payloads() -> list[tuple[str, str]]:
         ("array_join", f"key = {arr_join}"),
         ("comment_split", comment),
         ("newline_split", newline),
-        ("bearer", bearer),
         ("zw_inside", f"debug {zw_inside}"),
         ("short_sk", f"key {short_sk}"),
         ("custom_hex_enc", custom_enc),

@@ -52,7 +52,7 @@
 | **base32** | **pass** | **broke** |
 | **`chr(…)+…`** | **pass** | **broke** |
 | codepoints CSV | pass | broke |
-| soft-hyphen / ZWJ / reverse / `"s"+"k-…"` / array join / comment / newline / bearer | masked/blocked | held |
+| soft-hyphen / ZWJ / reverse / `"s"+"k-…"` / array join / comment / newline | masked/blocked | held |
 | custom `KEYENC:73+6b+…` | pass | broke |
 
 ### Живой HTTP (`X-Gateway-Verdict`)

@@ -276,22 +276,6 @@
     },
     {
       "layer": "offline_guard",
-      "name": "bearer",
-      "payload_preview": "Authorization: Bearer sk-demo-HARDCODED-FOR-TESTS-ONLY-xyz999abcdefghij",
-      "verdict": "masked",
-      "details": {
-        "reasons": [
-          "api_key_openai"
-        ],
-        "finding_codes": [
-          "api_key_openai"
-        ],
-        "masked": 1
-      },
-      "broke": false
-    },
-    {
-      "layer": "offline_guard",
       "name": "zw_inside",
       "payload_preview": "debug sk-​demo-HARDCODED-FOR-TESTS-ONLY-xyz999abcdefghij",
       "verdict": "masked",
@@ -357,7 +341,7 @@
   ],
   "summary": {
     "broke": 10,
-    "held": 14,
+    "held": 13,
     "errors": 1
   }
 }
