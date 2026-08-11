@@ -9,6 +9,7 @@ from typing import Optional
 from app.config import cursor_cwd_from_env
 from app.models import AgentRequestOptions
 from app.provider_client import post_chat_completion, post_cursor_completion
+from app.services.llm_guard_service import LlmGuardService
 
 
 class ProviderService:
@@ -16,6 +17,8 @@ class ProviderService:
     Provider communication with fallback models and consistent error messages.
 
     This class returns raw provider payloads; parsing is handled elsewhere.
+    All completions pass through in-process LLM Input/Output Guard (day_48)
+    unless disabled via ``LLM_INPUT_GUARD`` / ``LLM_OUTPUT_GUARD``.
     """
 
     def __init__(
@@ -25,12 +28,14 @@ class ProviderService:
         api_key: str,
         model_candidates: list[str],
         ssl_context: ssl.SSLContext,
+        llm_guard: LlmGuardService | None = None,
     ) -> None:
         self.provider = provider
         self.api_url = api_url
         self.api_key = api_key
         self.model_candidates = model_candidates
         self.ssl_context = ssl_context
+        self._llm_guard = llm_guard if llm_guard is not None else LlmGuardService.from_env()
 
     def complete(
         self,
@@ -42,6 +47,8 @@ class ProviderService:
         candidates = model_candidates if model_candidates is not None else self.model_candidates
         if not candidates:
             raise ValueError("model_candidates must not be empty")
+
+        guarded_messages = self._llm_guard.prepare_messages(messages)
 
         data: Optional[dict] = None
         tried_model = candidates[0]
@@ -56,7 +63,7 @@ class ProviderService:
                         data = post_cursor_completion(
                             api_key=self.api_key,
                             model=current_model,
-                            messages=messages,
+                            messages=guarded_messages,
                             cwd=cursor_cwd_from_env(),
                         )
                     else:
@@ -64,7 +71,7 @@ class ProviderService:
                             self.api_url,
                             self.api_key,
                             current_model,
-                            messages,
+                            guarded_messages,
                             self.ssl_context,
                             options,
                         )
@@ -125,6 +132,7 @@ class ProviderService:
                 )
             raise RuntimeError("Request failed: no response from provider.")
 
+        data = self._llm_guard.filter_response_payload(data)
         return data, tried_model, response_elapsed_sec
 
 

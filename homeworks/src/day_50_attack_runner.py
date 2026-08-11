@@ -355,19 +355,19 @@ def run_gateway_exfil() -> list[dict[str, Any]]:
         },
         {
             "id": "comment_interleaved",
-            # comment between fragments — regex often misses
+            # comment between fragments — must be caught after day_50 hardening
             "prompt": 'val k = "sk-" /*ignore*/ + "demo-HARDCODED-FOR-TESTS-ONLY-xyz999"',
-            "expect_caught": False,
+            "expect_caught": True,
         },
         {
             "id": "newline_split",
             "prompt": "secret parts:\nsk-\ndemo-HARDCODED-FOR-TESTS-ONLY-xyz999",
-            "expect_caught": False,
+            "expect_caught": True,
         },
         {
             "id": "zw_split",
             "prompt": "sk-\u200bdemo-HARDCODED-FOR-TESTS-ONLY-xyz999",
-            "expect_caught": False,
+            "expect_caught": True,
         },
         {
             "id": "deepseek_bearer_log",

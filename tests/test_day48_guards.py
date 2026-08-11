@@ -69,6 +69,27 @@ def test_split_secret_blocked() -> None:
     assert "api_key" in result.finding_kinds
 
 
+def test_comment_interleaved_secret_blocked() -> None:
+    prompt = 'val k = "sk-" /*ignore*/ + "proj-abc1234567890xyzDEMO"'
+    result = check_input(prompt, mode="block")
+    assert result.ok is False
+    assert "api_key" in result.finding_kinds
+
+
+def test_newline_split_secret_blocked() -> None:
+    prompt = "secret parts:\nsk-\nproj-abc1234567890xyzDEMO"
+    result = check_input(prompt, mode="block")
+    assert result.ok is False
+    assert "api_key" in result.finding_kinds
+
+
+def test_zero_width_split_secret_blocked() -> None:
+    prompt = "sk-\u200bproj-abc1234567890xyzDEMO"
+    result = check_input(prompt, mode="block")
+    assert result.ok is False
+    assert "api_key" in result.finding_kinds
+
+
 def test_clean_prompt_passes_and_calls_mock(tmp_path: Path) -> None:
     called: list[str] = []
 
