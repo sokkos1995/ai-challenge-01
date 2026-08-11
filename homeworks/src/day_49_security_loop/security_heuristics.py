@@ -117,12 +117,33 @@ def _ast_findings(code: str) -> list[SecurityFinding]:
     return out
 
 
+def _normalize_secret_obfuscation(code: str) -> str:
+    """Align with day_48 input_guard: strip ZW/comments and glue sk- splits."""
+    work = re.sub(r"[\u200b\u200c\u200d\u2060\ufeff\u00ad]", "", code)
+    work = re.sub(r"/\*.*?\*/", " ", work, flags=re.DOTALL)
+    work = re.sub(r"//.*?$", " ", work, flags=re.MULTILINE)
+    work = re.sub(
+        r"""["']?(sk-(?:proj-)?)["']?\s*\+\s*["']([A-Za-z0-9_-]{6,})["']?""",
+        r"\1\2",
+        work,
+        flags=re.IGNORECASE,
+    )
+    work = re.sub(
+        r"""(sk-(?:proj-)?)(?:[\s"'+]{1,40})([A-Za-z0-9_-]{6,})""",
+        r"\1\2",
+        work,
+        flags=re.IGNORECASE,
+    )
+    return work
+
+
 def scan_code(code: str) -> list[SecurityFinding]:
     """Return heuristic findings ordered Critical → Low."""
     findings: list[SecurityFinding] = []
+    secret_view = _normalize_secret_obfuscation(code)
     _add_regex(
         findings,
-        code,
+        secret_view,
         _SK_KEY,
         severity="Critical",
         kind="hardcoded_api_key",
@@ -130,7 +151,7 @@ def scan_code(code: str) -> list[SecurityFinding]:
     )
     _add_regex(
         findings,
-        code,
+        secret_view,
         _GHP,
         severity="Critical",
         kind="hardcoded_github_token",
@@ -138,7 +159,7 @@ def scan_code(code: str) -> list[SecurityFinding]:
     )
     _add_regex(
         findings,
-        code,
+        secret_view,
         _AKIA,
         severity="Critical",
         kind="hardcoded_aws_key",

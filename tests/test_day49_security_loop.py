@@ -76,6 +76,31 @@ def test_merge_prefers_heuristic_when_llm_empty():
     assert merged == heur
 
 
+def test_merge_upgrades_llm_low_severity_with_heuristic_critical():
+    from day_49_security_loop.security_heuristics import SecurityFinding
+
+    llm = [
+        SecurityFinding(
+            severity="Low",
+            line=1,
+            detail="test-only fixture, skip",
+            kind="hardcoded_api_key",
+            source="llm",
+        )
+    ]
+    heur = scan_code('K = "sk-proj-abc1234567890xyzDEMO"\n')
+    merged = merge_findings(llm, heur)
+    assert any(f.kind == "hardcoded_api_key" and f.severity == "Critical" for f in merged)
+    assert decision_for(merged) == "regen"
+
+
+def test_scan_code_catches_comment_and_zw_split_keys():
+    commented = 'K = "sk-" /* x */ + "proj-abc1234567890xyzDEMO"\n'
+    zw = 'K = "sk-\u200bproj-abc1234567890xyzDEMO"\n'
+    assert any(f.kind == "hardcoded_api_key" for f in scan_code(commented))
+    assert any(f.kind == "hardcoded_api_key" for f in scan_code(zw))
+
+
 def test_gateway_in_process_blocks_secret_in_block_mode():
     def boom(messages, model=None):
         raise AssertionError("completer must not run when blocked")

@@ -54,22 +54,30 @@ flowchart TD
 | [`artifacts/day_50/payloads/`](artifacts/day_50/payloads/) | indirect / exfil payload’ы |
 | [`artifacts/day_50/evidence/`](artifacts/day_50/evidence/) | доказательство security bypass |
 | [`src/day_50_attack_runner.py`](src/day_50_attack_runner.py) | прогон атак 46–49 |
-| day_48 / day_49 | gateway + security loop (без изменений контракта) |
+| day_48 / day_49 | gateway + security loop |
 
-## Демо (smoke)
+## Демо
 
 ```bash
-pip install -r homeworks/artifacts/day_48/requirements.txt
-
 PYTHONPATH=. .venv/bin/python -m homeworks.src.day_48_llm_gateway.gateway_app
-# GET  http://127.0.0.1:8848/health
-# POST http://127.0.0.1:8848/v1/chat
-
 PYTHONPATH=.:homeworks/src .venv/bin/python -m day_49_security_loop.run_loop --offline
-.venv/bin/python -m pytest tests/test_day48_guards.py tests/test_day49_security_loop.py -q
-
-# Red-team против конфигов цели (нужен LLM в .env)
-.venv/bin/python homeworks/src/day_50_attack_runner.py
-# только gateway formats + static recon:
-.venv/bin/python homeworks/src/day_50_attack_runner.py --skip-live
+.venv/bin/python -m pytest tests/test_day48_guards.py tests/test_day49_security_loop.py \
+  tests/test_day47_defenses.py tests/test_day50_self_defense.py -q
 ```
+
+## Hardening после self-check (векторы 46–49 на нас)
+
+Прогон атак на **свой** пайплайн + фиксы residual из отчёта атаки:
+
+| Вектор | Статус | Доказательство |
+|--------|--------|----------------|
+| 46 hardened policy | ok (артефакт + правила) | `artifacts/day_46/system_hardened.txt`, `tests/test_day50_self_defense.py` |
+| 47 sanitize `--secure` | ok | day_47 tests + sanitize на day_50 payloads |
+| 48 gateway splits (comment/newline/ZW) | **закрыто** | `input_guard._normalize_for_split` + 3 новых теста |
+| 49 security bypass / LLM Low | **закрыто** | `merge_findings` берёт худший severity; heuristics Critical → regen |
+
+```bash
+.venv/bin/python -m pytest tests/test_day48_guards.py tests/test_day49_security_loop.py tests/test_day47_defenses.py tests/test_day50_self_defense.py -q
+```
+
+Остаточный риск вне battle-пайплайна: основной CLI (`SimpleLLMAgent`) по-прежнему ходит к провайдеру **минуя** day_48 gateway; day_47 sanitize не вшит в `app/`. Для red-team обмена с партнёром защищён слой gateway + security loop.

@@ -119,24 +119,35 @@ def parse_security_json(raw: str) -> list[SecurityFinding]:
     return out
 
 
+_SEV_RANK = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3}
+
+
 def merge_findings(
     llm: list[SecurityFinding],
     heuristic: list[SecurityFinding],
 ) -> list[SecurityFinding]:
-    """Prefer union; heuristic fills gaps when LLM empty/partial."""
+    """Union by kind; if both report the same kind, keep the worse severity.
+
+    Prevents LLM «test-only / Low» from downgrading a heuristic Critical/High.
+    """
     if not llm:
         return list(heuristic)
     merged = list(llm)
-    seen = {(f.kind, f.line, f.detail) for f in llm}
-    for f in heuristic:
-        key = (f.kind, f.line, f.detail)
-        # also match by kind alone for heuristic supplements
-        if key in seen:
+    for h in heuristic:
+        same_idxs = [i for i, f in enumerate(merged) if f.kind == h.kind]
+        if not same_idxs:
+            merged.append(h)
             continue
-        if any(h.kind == f.kind for h in llm):
-            continue
-        merged.append(f)
-        seen.add(key)
+        for i in same_idxs:
+            cur = merged[i]
+            if _SEV_RANK.get(h.severity, 9) < _SEV_RANK.get(cur.severity, 9):
+                merged[i] = SecurityFinding(
+                    severity=h.severity,
+                    line=cur.line if cur.line is not None else h.line,
+                    detail=h.detail,
+                    kind=h.kind,
+                    source="heuristic",
+                )
     return merged
 
 

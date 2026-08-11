@@ -98,7 +98,7 @@ object DemoSecrets {
 | zero-width `sk-\u200b…` | **missed** | пропустил бы |
 | `Authorization: Bearer sk-or-v1-…` | **caught** | пропустил бы (типичный лог/чат) |
 
-Итог day_48: у партнёра дыра = **отсутствие guard**; у нас — известные residual: comment/newline/ZW splits (задание day_50 прямо просило такие форматы).
+Итог day_48: у партнёра дыра = **отсутствие guard**; у нас — после hardening day_50 Input Guard ловит и comment/newline/ZW splits (см. `tests/test_day48_guards.py`, `tests/test_day50_self_defense.py`).
 
 ---
 

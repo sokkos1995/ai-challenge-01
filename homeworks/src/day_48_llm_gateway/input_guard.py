@@ -49,6 +49,25 @@ _SPLIT_CONCAT = re.compile(
     r"""["']?(sk-(?:proj-)?)["']?\s*\+\s*["']([A-Za-z0-9_-]{6,})["']?""",
     re.IGNORECASE,
 )
+# Zero-width / soft-hyphen obfuscation between key fragments
+_ZERO_WIDTH = re.compile(
+    "["
+    "\u200b"  # ZWSP
+    "\u200c"  # ZWNJ
+    "\u200d"  # ZWJ
+    "\u2060"  # WJ
+    "\ufeff"  # BOM
+    "\u00ad"  # soft hyphen
+    "]"
+)
+_C_BLOCK_COMMENT = re.compile(r"/\*.*?\*/", re.DOTALL)
+_C_LINE_COMMENT = re.compile(r"//.*?$", re.MULTILINE)
+_HASH_LINE_COMMENT = re.compile(r"#.*?$", re.MULTILINE)
+# sk- / sk-proj- then short junk (spaces/newlines/quotes/+) then suffix
+_SK_GLUE = re.compile(
+    r"""(sk-(?:proj-)?)(?:[\s"'+]{1,40})([A-Za-z0-9_-]{6,})""",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -88,17 +107,27 @@ def _luhn_ok(digits: str) -> bool:
 
 
 def _normalize_for_split(text: str) -> str:
-    """Glue common split forms so regexes can see full secrets."""
+    """Glue common split / obfuscated forms so regexes can see full secrets.
+
+    Handles: quoted ``+`` concat, C/Python comments between fragments,
+    newlines/whitespace, and zero-width characters (day_50 residual misses).
+    """
+    work = _ZERO_WIDTH.sub("", text)
+    work = _C_BLOCK_COMMENT.sub(" ", work)
+    work = _C_LINE_COMMENT.sub(" ", work)
+    work = _HASH_LINE_COMMENT.sub(" ", work)
     # "sk-" + "proj-abc" → sk-proj-abc
-    glued = _SPLIT_CONCAT.sub(r"\1\2", text)
+    work = _SPLIT_CONCAT.sub(r"\1\2", work)
     # sk- + proj- (without quotes)
-    glued = re.sub(
+    work = re.sub(
         r"(sk-(?:proj-)?)[\s]*\+[\s]*(proj-[A-Za-z0-9_-]+|[A-Za-z0-9_-]{8,})",
         r"\1\2",
-        glued,
+        work,
         flags=re.IGNORECASE,
     )
-    return glued
+    # sk-\nrest / sk-  "rest" / leftover spaces after comment strip
+    work = _SK_GLUE.sub(r"\1\2", work)
+    return work
 
 
 def _scan_plain(text: str) -> list[Finding]:
