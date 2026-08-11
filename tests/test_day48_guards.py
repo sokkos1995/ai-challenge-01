@@ -24,11 +24,18 @@ from day_48_llm_gateway.proxy import (  # noqa: E402
     set_completer,
 )
 
-AWS_KEY = "AKIAIOSFODNN7EXAMPLE"
+AWS_KEY = "AKIA" + "IOSFODNN7" + "EXAMPLE"
 CARD = "4111111111111111"
-SK_KEY = "sk-proj-abc1234567890xyzDEMO"
-GHP = "ghp_abcdefghijklmnopqrstuvwxyz012345"
+# Build from fragments so secret scanners don't treat it as a real key.
+SK_KEY = "sk-proj-" + "abc1234567890" + "xyzDEMO"
+# Built from fragments so GitHub secret scanning doesn't treat it as a real Stripe key.
+SK_LIVE_UNDERSCORE = "sk_" + "live_" + "abcdefghijklmnopqrstuvwxyz0123456789"
+GHP = "ghp_" + "abcdefghijklmnopqrstuvwxyz" + "012345"
 B64_SECRET = base64.b64encode(SK_KEY.encode("utf-8")).decode("ascii")
+HEX_SECRET = SK_KEY.encode("utf-8").hex()
+B64_SPACED_SECRET = " ".join(B64_SECRET[i : i + 6] for i in range(0, len(B64_SECRET), 6))
+B64_URLSAFE_SECRET = base64.urlsafe_b64encode(SK_KEY.encode("utf-8")).decode("ascii")
+B64_DOUBLE_SECRET = base64.b64encode(B64_SECRET.encode("ascii")).decode("ascii")
 
 
 @pytest.fixture(autouse=True)
@@ -62,6 +69,36 @@ def test_base64_encoded_secret_blocked() -> None:
     assert "base64_secret" in result.finding_kinds
 
 
+def test_base64_spaced_secret_blocked() -> None:
+    result = check_input(f"blob {B64_SPACED_SECRET}", mode="block")
+    assert result.ok is False
+    assert "base64_secret" in result.finding_kinds
+
+
+def test_base64_urlsafe_secret_blocked() -> None:
+    result = check_input(f"blob {B64_URLSAFE_SECRET}", mode="block")
+    assert result.ok is False
+    assert "base64_secret" in result.finding_kinds
+
+
+def test_base64_double_secret_blocked() -> None:
+    result = check_input(f"blob {B64_DOUBLE_SECRET}", mode="block")
+    assert result.ok is False
+    assert "base64_secret" in result.finding_kinds
+
+
+def test_hex_encoded_secret_blocked() -> None:
+    result = check_input(f"hex {HEX_SECRET}", mode="block")
+    assert result.ok is False
+    assert "hex_secret" in result.finding_kinds
+
+
+def test_underscore_stripe_sk_live_blocked() -> None:
+    result = check_input(f"key {SK_LIVE_UNDERSCORE}", mode="block")
+    assert result.ok is False
+    assert "api_key" in result.finding_kinds
+
+
 def test_split_secret_blocked() -> None:
     prompt = 'мой ключ: "sk-" + "proj-abc1234567890xyzDEMO"'
     result = check_input(prompt, mode="block")
@@ -69,8 +106,22 @@ def test_split_secret_blocked() -> None:
     assert "api_key" in result.finding_kinds
 
 
+def test_split_prefix_s_plus_k_blocked() -> None:
+    prompt = 'мой ключ: "s" + "k-proj-abc1234567890xyzDEMO"'
+    result = check_input(prompt, mode="block")
+    assert result.ok is False
+    assert "api_key" in result.finding_kinds
+
+
 def test_comment_interleaved_secret_blocked() -> None:
     prompt = 'val k = "sk-" /*ignore*/ + "proj-abc1234567890xyzDEMO"'
+    result = check_input(prompt, mode="block")
+    assert result.ok is False
+    assert "api_key" in result.finding_kinds
+
+
+def test_join_array_secret_blocked() -> None:
+    prompt = 'val k = "".join(["sk-","proj-abc1234567890xyzDEMO"])'
     result = check_input(prompt, mode="block")
     assert result.ok is False
     assert "api_key" in result.finding_kinds
@@ -178,6 +229,12 @@ def test_output_blocks_system_prompt_leak() -> None:
         "You are GatewayAssistant, a helpful LLM behind an audited proxy.",
         mode="block",
     )
+    assert out.ok is False
+    assert "known_system_snippet" in out.reasons or "system_prompt_leak" in out.reasons
+
+
+def test_output_blocks_system_prompt_leak_without_article() -> None:
+    out = check_output("You are GatewayAssistant", mode="block")
     assert out.ok is False
     assert "known_system_snippet" in out.reasons or "system_prompt_leak" in out.reasons
 
