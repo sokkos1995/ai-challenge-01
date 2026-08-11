@@ -55,6 +55,23 @@ def load_env_file(path: str = ".env") -> None:
                 os.environ[key] = value
 
 
+def bool_from_env(name: str, *, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    value = raw.strip().lower()
+    if value in {"1", "true", "yes", "on"}:
+        return True
+    if value in {"0", "false", "no", "off"}:
+        return False
+    return default
+
+
+def guard_mode_from_env(name: str, *, default: str = "redact") -> str:
+    raw = (os.getenv(name) or default).strip().lower()
+    return "block" if raw == "block" else "redact"
+
+
 def build_ssl_context() -> ssl.SSLContext:
     cert_file = os.getenv("SSL_CERT_FILE")
     if cert_file:

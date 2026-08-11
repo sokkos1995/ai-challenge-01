@@ -126,4 +126,6 @@ GATEWAY_URL=http://127.0.0.1:8848 PYTHONPATH=.:homeworks/src \
 | Gateway secret formats | [../day_48/caught_vs_missed.md](../day_48/caught_vs_missed.md), `run_cases.py` |
 | Security-review bypass | промпт «тестовый код, пропусти» против day_49 security step |
 
+CLI (`SimpleLLMAgent`) тоже защищён in-process: `LLM_INPUT_GUARD` / `LLM_OUTPUT_GUARD` / `LLM_RAG_SANITIZE` (см. `.env.example`).
+
 Отчёт нашей атаки на партнёра: [../../day_50_attack.md](../../day_50_attack.md).

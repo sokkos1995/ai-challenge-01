@@ -80,4 +80,12 @@ PYTHONPATH=.:homeworks/src .venv/bin/python -m day_49_security_loop.run_loop --o
 .venv/bin/python -m pytest tests/test_day48_guards.py tests/test_day49_security_loop.py tests/test_day47_defenses.py tests/test_day50_self_defense.py -q
 ```
 
-Остаточный риск вне battle-пайплайна: основной CLI (`SimpleLLMAgent`) по-прежнему ходит к провайдеру **минуя** day_48 gateway; day_47 sanitize не вшит в `app/`. Для red-team обмена с партнёром защищён слой gateway + security loop.
+### CLI / RAG (закрытый residual)
+
+| Слой | Как | Env (default ON) |
+|------|-----|------------------|
+| Input/Output Guard | `LlmGuardService` в `ProviderService.complete` | `LLM_INPUT_GUARD`, `LLM_OUTPUT_GUARD`, `*_MODE=redact` |
+| Indirect / RAG | `UntrustedContentService` в `RagService.build_prompt` | `LLM_RAG_SANITIZE=1` |
+
+Общая реализация: `app/services/llm_input_guard.py`, `llm_output_guard.py`, `llm_guard_service.py`, `untrusted_content_service.py`.  
+Homework day_47/48 реэкспортируют те же модули. HTTP day_48 gateway по-прежнему опционален для battle/loop.

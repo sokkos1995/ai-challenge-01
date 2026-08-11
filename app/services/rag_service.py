@@ -145,9 +145,18 @@ def _retrieve_contexts(
     return selected
 
 
-def _build_grounded_prompt(question: str, contexts: list[RagContext]) -> str:
+def _build_grounded_prompt(
+    question: str,
+    contexts: list[RagContext],
+    *,
+    sanitize_untrusted: bool = True,
+) -> str:
+    from app.services.untrusted_content_service import UntrustedContentService
+
+    sanitizer = UntrustedContentService(enabled=sanitize_untrusted)
     context_lines: list[str] = []
     for idx, item in enumerate(contexts, start=1):
+        safe_text = sanitizer.prepare_for_prompt(item.text)
         context_lines.extend(
             [
                 f"[Context {idx}]",
@@ -155,7 +164,7 @@ def _build_grounded_prompt(question: str, contexts: list[RagContext]) -> str:
                 f"section: {item.section}",
                 f"chunk_id: {item.chunk_id}",
                 f"score: {item.score}",
-                f"text: {item.text}",
+                f"text: {safe_text}",
                 "",
             ]
         )
@@ -276,12 +285,20 @@ class RagService:
         top_k_after: int = 4,
         similarity_threshold: float = 0.2,
         min_context_score: float = 0.24,
+        sanitize_untrusted: bool | None = None,
     ) -> None:
+        from app.config import bool_from_env
+
         self._records = records
         self._top_k_before = max(1, top_k_before)
         self._top_k_after = max(1, top_k_after)
         self._similarity_threshold = similarity_threshold
         self._min_context_score = min_context_score
+        self._sanitize_untrusted = (
+            bool_from_env("LLM_RAG_SANITIZE", default=True)
+            if sanitize_untrusted is None
+            else sanitize_untrusted
+        )
 
     @classmethod
     def from_json_index(
@@ -291,6 +308,7 @@ class RagService:
         top_k_after: int = 4,
         similarity_threshold: float = 0.2,
         min_context_score: float = 0.24,
+        sanitize_untrusted: bool | None = None,
     ) -> "RagService":
         path = Path(index_path).expanduser().resolve()
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -304,6 +322,7 @@ class RagService:
             top_k_after=top_k_after,
             similarity_threshold=similarity_threshold,
             min_context_score=min_context_score,
+            sanitize_untrusted=sanitize_untrusted,
         )
 
     def is_low_relevance(self, contexts: list[RagContext]) -> bool:
@@ -317,7 +336,12 @@ class RagService:
             top_k_after=self._top_k_after,
             similarity_threshold=self._similarity_threshold,
         )
-        return _build_grounded_prompt(question, contexts), contexts, self.is_low_relevance(contexts)
+        prompt = _build_grounded_prompt(
+            question,
+            contexts,
+            sanitize_untrusted=self._sanitize_untrusted,
+        )
+        return prompt, contexts, self.is_low_relevance(contexts)
 
     def low_relevance_answer(self, contexts: list[RagContext]) -> RagAnswer:
         payload = _fallback_payload(contexts, "Не знаю по текущему контексту. Уточните вопрос.")
